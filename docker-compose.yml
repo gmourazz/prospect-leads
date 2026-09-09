@@ -1,0 +1,20 @@
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: prospect-db
+    environment:
+      POSTGRES_USER: prospect
+      POSTGRES_PASSWORD: prospect
+      POSTGRES_DB: prospect
+    ports:
+      - "5434:5432"
+    volumes:
+      - prospect-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U prospect -d prospect"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  prospect-data:

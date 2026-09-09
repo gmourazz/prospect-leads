@@ -1,0 +1,21 @@
+# secrets — never committed
+.env
+.env.*
+!.env.example
+
+# dependencies / build output
+node_modules/
+dist/
+build/
+
+# Go build artifacts
+backend/tmp/
+*.exe
+
+# runtime data (uploaded template images, local only)
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# OS / editor
+.DS_Store
+*.log

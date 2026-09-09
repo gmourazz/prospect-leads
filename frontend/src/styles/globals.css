@@ -1,0 +1,225 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&family=JetBrains+Mono:wght@500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Tokens live here from day one so dark mode is a token swap, not a hunt
+   through components for hardcoded colors. Purple/violet is the brand hue. */
+@layer base {
+  :root {
+    --background: 262 40% 99%;
+    --surface: 0 0% 100%;
+    --foreground: 262 25% 11%;
+
+    --muted: 262 30% 96%;
+    --muted-foreground: 262 12% 46%;
+
+    --border: 262 20% 90%;
+    --input: 262 20% 90%;
+    --ring: 262 83% 58%;
+
+    --primary: 262 83% 58%;
+    --primary-foreground: 0 0% 100%;
+
+    --accent: 262 60% 96%;
+    --accent-foreground: 262 83% 34%;
+
+    --success: 152 60% 36%;
+    --success-foreground: 0 0% 100%;
+    --success-subtle: 152 55% 95%;
+
+    --warning: 36 92% 42%;
+    --warning-foreground: 0 0% 100%;
+    --warning-subtle: 40 96% 94%;
+
+    --danger: 336 78% 52%;
+    --danger-foreground: 0 0% 100%;
+    --danger-subtle: 336 80% 96%;
+
+    --info: 221 76% 52%;
+    --info-subtle: 214 95% 95%;
+
+    --shadow: 262 30% 20%;
+    --radius: 0.625rem;
+  }
+
+  [data-theme='dark'] {
+    --background: 263 32% 7%;
+    --surface: 262 26% 10%;
+    --foreground: 262 20% 96%;
+
+    --muted: 262 18% 15%;
+    --muted-foreground: 262 10% 65%;
+
+    --border: 262 16% 19%;
+    --input: 262 16% 19%;
+    --ring: 262 90% 70%;
+
+    --primary: 262 90% 70%;
+    --primary-foreground: 262 30% 9%;
+
+    --accent: 262 20% 16%;
+    --accent-foreground: 262 90% 88%;
+
+    --success: 152 55% 48%;
+    --success-subtle: 152 40% 14%;
+
+    --warning: 38 90% 55%;
+    --warning-subtle: 36 50% 15%;
+
+    --danger: 336 82% 62%;
+    --danger-subtle: 336 55% 16%;
+
+    --info: 217 84% 62%;
+    --info-subtle: 220 50% 17%;
+
+    --shadow: 0 0% 0%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    background-image: radial-gradient(circle at 12% -8%, hsl(var(--primary) / 0.10), transparent 42%);
+    background-attachment: fixed;
+  }
+
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  ::selection {
+    background-color: hsl(var(--primary) / 0.18);
+  }
+
+  /* WebKit/Chromium force a light autofill background (yellow or light blue)
+     that ignores normal background-color entirely — this is the standard
+     workaround: an absurdly long transition delay on background-color plus
+     forcing the fill color, so it never gets the chance to paint the
+     browser's own color. Without this, an autofilled input stays light even
+     in dark mode. */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  input:-webkit-autofill:active {
+    -webkit-text-fill-color: hsl(var(--foreground));
+    caret-color: hsl(var(--foreground));
+    -webkit-box-shadow: 0 0 0 1000px hsl(var(--surface)) inset;
+    box-shadow: 0 0 0 1000px hsl(var(--surface)) inset;
+    transition: background-color 600000s 0s, color 600000s 0s;
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--border));
+    border-radius: 999px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .glow-primary {
+    box-shadow: 0 0 0 1px hsl(var(--primary) / 0.25), 0 8px 24px -8px hsl(var(--primary) / 0.55);
+  }
+  .gradient-brand {
+    background-image: linear-gradient(135deg, hsl(262 83% 58%), hsl(292 75% 58%));
+  }
+
+  /* Login/auth backdrop: layered aurora blobs + a faint tech grid. Every
+     color is token-derived so it reads correctly in both themes without a
+     separate dark variant. */
+  .auth-backdrop {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    background: hsl(var(--background));
+  }
+  .auth-backdrop::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(hsl(var(--foreground) / 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--foreground) / 0.035) 1px, transparent 1px);
+    background-size: 44px 44px;
+    -webkit-mask-image: radial-gradient(ellipse 65% 45% at 50% 0%, black 30%, transparent 75%);
+    mask-image: radial-gradient(ellipse 65% 45% at 50% 0%, black 30%, transparent 75%);
+  }
+  /* Faint grain breaks up banding in the blurred blobs below. */
+  .auth-backdrop::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0.5;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.35'/%3E%3C/svg%3E");
+  }
+  .auth-blob {
+    position: absolute;
+    border-radius: 9999px;
+    filter: blur(90px);
+    opacity: 0.4;
+    will-change: transform;
+  }
+  [data-theme='dark'] .auth-blob {
+    opacity: 0.3;
+  }
+  .auth-blob-1 {
+    top: -12%;
+    left: -8%;
+    width: 34rem;
+    height: 34rem;
+    background: hsl(262 83% 58%);
+    animation: auth-float-a 22s ease-in-out infinite;
+  }
+  .auth-blob-2 {
+    bottom: -16%;
+    right: -10%;
+    width: 30rem;
+    height: 30rem;
+    background: hsl(292 75% 58%);
+    animation: auth-float-b 26s ease-in-out infinite;
+  }
+  .auth-blob-3 {
+    top: 30%;
+    right: 18%;
+    width: 20rem;
+    height: 20rem;
+    background: hsl(221 76% 58%);
+    animation: auth-float-c 19s ease-in-out infinite;
+  }
+
+  @keyframes auth-float-a {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(4%, 6%) scale(1.08); }
+  }
+  @keyframes auth-float-b {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(-5%, -4%) scale(1.06); }
+  }
+  @keyframes auth-float-c {
+    0%, 100% { transform: translate(0, 0); }
+    50% { transform: translate(-6%, 5%); }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
