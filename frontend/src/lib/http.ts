@@ -1,6 +1,9 @@
 import { ApiError } from './api-error'
 
-const BASE = '/api/v1'
+// In dev, relative '/api/v1' rides Vite's proxy to localhost:8080. In a
+// static production build there's no proxy, so VITE_API_URL must point at
+// the deployed backend directly.
+const BASE = import.meta.env.VITE_API_URL ?? '/api/v1'
 const TOKEN_KEY = 'prospect_token'
 
 export function getToken() {
