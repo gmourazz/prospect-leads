@@ -2,6 +2,7 @@
 package outreach
 
 import (
+	"math/rand"
 	"net/url"
 	"regexp"
 	"sort"
@@ -127,6 +128,27 @@ func Render(body string, vars map[string]string) string {
 		lines[i] = strings.TrimRight(regexp.MustCompile(`[ \t]{2,}`).ReplaceAllString(line, " "), " \t")
 	}
 	return strings.Join(lines, "\n")
+}
+
+// spinPattern matches a single-brace alternation like {Oi|Olá|Bom dia}. The
+// required "|" is what keeps it from colliding with {{variavel}} syntax: a
+// variable never contains a pipe, so the two can share the same body.
+var spinPattern = regexp.MustCompile(`\{([^{}|]*\|[^{}]*)\}`)
+
+// Spin picks one alternative per {a|b|c} group, so the same template produces
+// a visibly different message every time.
+//
+// This is a WhatsApp-only concern and is applied only on that path. Sending
+// hundreds of byte-identical messages from one number is the single loudest
+// spam signal there is — far louder than the volume itself — because ordinary
+// people never retype the same sentence perfectly. Email does not need it
+// (and does not get it): inbox filters judge reputation and content, not
+// repetition across unrelated recipients.
+func Spin(body string) string {
+	return spinPattern.ReplaceAllStringFunc(body, func(match string) string {
+		options := strings.Split(match[1:len(match)-1], "|")
+		return strings.TrimSpace(options[rand.Intn(len(options))])
+	})
 }
 
 // ShortName takes the first meaningful word of a business name, for greetings

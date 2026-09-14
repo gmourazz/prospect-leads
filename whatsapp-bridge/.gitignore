@@ -1,0 +1,6 @@
+node_modules/
+# Credenciais do dispositivo WhatsApp pareado. Quem tem esta pasta tem a
+# sessao — nunca versionar.
+auth/
+.env
+pending-report.json

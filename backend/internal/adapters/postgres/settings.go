@@ -60,3 +60,46 @@ func (r *SettingsRepo) SetSendRules(ctx context.Context, sr SendRules) error {
 		sr.DailyLimit, sr.Weekdays, sr.HourStart, sr.HourEnd)
 	return TranslateError(err)
 }
+
+// WhatsAppRules paces the automated WhatsApp queue. Kept apart from SendRules
+// because the two limits answer to different masters: email is throttled by
+// Gmail, WhatsApp bans numbers that behave like software. Unlike SendRules,
+// these are enforced continuously — every single message asks permission.
+type WhatsAppRules struct {
+	DailyLimit     int     `json:"wa_daily_limit"`
+	MinIntervalSec int     `json:"wa_min_interval_sec"`
+	MaxIntervalSec int     `json:"wa_max_interval_sec"`
+	BurstSize      int     `json:"wa_burst_size"`
+	BurstPauseMin  int     `json:"wa_burst_pause_min"`
+	Weekdays       []int16 `json:"wa_weekdays"` // ISO: 1=segunda..7=domingo
+	HourStart      int     `json:"wa_hour_start"`
+	HourEnd        int     `json:"wa_hour_end"`
+}
+
+func (r *SettingsRepo) WhatsAppRules(ctx context.Context) (WhatsAppRules, error) {
+	var wr WhatsAppRules
+	err := r.DB(ctx).QueryRow(ctx, `
+		SELECT wa_daily_limit, wa_min_interval_sec, wa_max_interval_sec,
+		       wa_burst_size, wa_burst_pause_min, wa_weekdays,
+		       wa_hour_start, wa_hour_end
+		  FROM app_settings WHERE id = 1`).
+		Scan(&wr.DailyLimit, &wr.MinIntervalSec, &wr.MaxIntervalSec,
+			&wr.BurstSize, &wr.BurstPauseMin, &wr.Weekdays,
+			&wr.HourStart, &wr.HourEnd)
+	if err != nil {
+		return WhatsAppRules{}, TranslateError(err)
+	}
+	return wr, nil
+}
+
+func (r *SettingsRepo) SetWhatsAppRules(ctx context.Context, wr WhatsAppRules) error {
+	_, err := r.DB(ctx).Exec(ctx, `
+		UPDATE app_settings
+		   SET wa_daily_limit = $1, wa_min_interval_sec = $2, wa_max_interval_sec = $3,
+		       wa_burst_size = $4, wa_burst_pause_min = $5, wa_weekdays = $6,
+		       wa_hour_start = $7, wa_hour_end = $8, updated_at = now()
+		 WHERE id = 1`,
+		wr.DailyLimit, wr.MinIntervalSec, wr.MaxIntervalSec, wr.BurstSize,
+		wr.BurstPauseMin, wr.Weekdays, wr.HourStart, wr.HourEnd)
+	return TranslateError(err)
+}

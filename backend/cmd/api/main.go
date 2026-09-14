@@ -59,6 +59,7 @@ func main() {
 	searchRuns := postgres.NewSearchRunRepo(store)
 	attachmentRepo := postgres.NewAttachmentRepo(store)
 	settingsRepo := postgres.NewSettingsRepo(store)
+	whatsappRepo := postgres.NewWhatsAppRepo(store)
 
 	// The simulated gateway exercises the full send path — reservation,
 	// failure handling, history — without sending real email. Real sending
@@ -98,6 +99,7 @@ func main() {
 		Analytics:   analytics,
 		Companies:   companies,
 		Outreach:    application.NewOutreachService(store, outreachRepo, leads, templates, idempotency, settingsRepo, gateway),
+		WhatsApp:    application.NewWhatsAppAgentService(whatsappRepo, templates, settingsRepo),
 		Imports:     application.NewImportService(store, importsRepo, contacts, companies, segments, idempotency),
 		LeadService: application.NewLeadService(store, leads, companies, contacts),
 		Sourcing:    application.NewSourcingService(store, companies, contacts, segments, leads, searchUsage, providerQuota, leadProvider, emailFinder),

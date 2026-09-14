@@ -5,6 +5,7 @@ import {
   Clock,
   Gauge,
   LayoutDashboard,
+  MessageCircle,
   MessageSquareText,
   Search,
   Send,
@@ -22,6 +23,7 @@ const NAV = [
   { to: '/buscar', label: 'Buscar leads', icon: Search },
   { to: '/campanhas', label: 'Campanhas', icon: Send },
   { to: '/aguardando', label: 'Aguardando resposta', icon: Clock },
+  { to: '/fila-whatsapp', label: 'Fila do WhatsApp', icon: MessageCircle },
   { to: '/templates', label: 'Templates', icon: MessageSquareText },
   { to: '/importar', label: 'Importar', icon: FileSpreadsheet },
 ]

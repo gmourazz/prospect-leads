@@ -1,0 +1,11 @@
+-- 'queued' sits before 'sending': a message committed to go out on WhatsApp,
+-- but which no socket has touched yet. It exists as its own status because
+-- the duplicate guarantee has to hold from the moment the user hits "enviar",
+-- not from the moment the message actually leaves — otherwise a queue with
+-- 200 pending items would happily accept the same contact twice.
+--
+-- Alone in its own migration on purpose: Postgres refuses to USE a new enum
+-- value in the same transaction that added it, and the migration runner wraps
+-- each file in one transaction. Everything that reads 'queued' lives in
+-- 000028. Same reason 000010 and 000018 were split.
+ALTER TYPE dispatch_status ADD VALUE IF NOT EXISTS 'queued';

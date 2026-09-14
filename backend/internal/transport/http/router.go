@@ -25,6 +25,7 @@ type API struct {
 	Templates   *postgres.TemplateRepo
 	Analytics   *postgres.AnalyticsRepo
 	Outreach    *application.OutreachService
+	WhatsApp    *application.WhatsAppAgentService
 	LeadService *application.LeadService
 	Sourcing    *application.SourcingService
 	Imports     *application.ImportService
@@ -128,6 +129,20 @@ func (a *API) mountProtectedRoutes(r chi.Router) {
 		r.Post("/{id}/preview", a.previewMessage)
 		r.Patch("/{id}/status", a.setCampaignStatus)
 		r.Delete("/{id}", a.deleteCampaign)
+	})
+
+	// Automated WhatsApp: the browser fills and watches the queue, the local
+	// Baileys bridge drains it one message at a time under /agent.
+	r.Route("/whatsapp", func(r chi.Router) {
+		r.Get("/queue", a.whatsAppStatus)
+		r.Post("/queue", a.enqueueWhatsApp)
+		r.Delete("/queue", a.clearWhatsAppQueue)
+		r.Post("/queue/pause", a.pauseWhatsApp)
+		r.Post("/queue/resume", a.resumeWhatsApp)
+
+		r.Post("/agent/claim", a.claimWhatsApp)
+		r.Post("/agent/result", a.reportWhatsApp)
+		r.Post("/agent/connection", a.reportWhatsAppConnection)
 	})
 
 	r.Route("/imports", func(r chi.Router) {

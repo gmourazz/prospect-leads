@@ -12,6 +12,7 @@ import { SearchLeadsPage } from '@/pages/SearchLeadsPage'
 import { SegmentsPage } from '@/pages/SegmentsPage'
 import { SuppressionPage } from '@/pages/SuppressionPage'
 import { AwaitingReplyPage } from '@/pages/AwaitingReplyPage'
+import { WhatsAppQueuePage } from '@/pages/WhatsAppQueuePage'
 import { SettingsPage } from '@/pages/SettingsPage'
 import { QuotaPage } from '@/pages/QuotaPage'
 
@@ -28,6 +29,7 @@ export const router = createBrowserRouter([
       { path: 'leads', element: <LeadsPage /> },
       { path: 'campanhas', element: <CampaignsPage /> },
       { path: 'aguardando', element: <AwaitingReplyPage /> },
+      { path: 'fila-whatsapp', element: <WhatsAppQueuePage /> },
       { path: 'campanhas/:id', element: <CampaignDetailPage /> },
       { path: 'templates', element: <TemplatesPage /> },
       { path: 'importar', element: <ImportPage /> },

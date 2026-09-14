@@ -14,6 +14,7 @@ import { EnrichProgressBar } from '@/features/leads/components/EnrichProgressBar
 import { LeadsEmptyState } from '@/features/leads/components/LeadsEmptyState'
 import { SelectionBar } from '@/features/leads/components/SelectionBar'
 import { BulkWhatsAppDialog } from '@/features/leads/components/BulkWhatsAppDialog'
+import { EnqueueWhatsAppDialog } from '@/features/whatsapp/components/EnqueueWhatsAppDialog'
 import { NewLeadDialog } from '@/features/leads/components/NewLeadDialog'
 import { CreateCampaignDialog } from '@/features/campaigns/components/CreateCampaignDialog'
 import { Button } from '@/components/ui/button'
@@ -31,6 +32,8 @@ export function LeadsPage() {
   const [whatsappOpen, setWhatsappOpen] = useState(false)
   const [whatsappQueue, setWhatsappQueue] = useState<Lead[]>([])
   const [whatsappSkipped, setWhatsappSkipped] = useState(0)
+  const [enqueueOpen, setEnqueueOpen] = useState(false)
+  const [enqueueLeads, setEnqueueLeads] = useState<Lead[]>([])
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [density, setDensity] = useLeadDensity()
   const [exporting, setExporting] = useState(false)
@@ -189,6 +192,14 @@ export function LeadsPage() {
         count={selected.size}
         onClear={() => setSelected(new Set())}
         onCreateCampaign={() => setCampaignOpen(true)}
+        onQueueWhatsApp={
+          selectedForWhatsApp.length > 0
+            ? () => {
+                setEnqueueLeads(selectedForWhatsApp)
+                setEnqueueOpen(true)
+              }
+            : undefined
+        }
         onSendWhatsApp={
           selectedForWhatsApp.length > 0
             ? () => {
@@ -215,6 +226,11 @@ export function LeadsPage() {
         onOpenChange={setWhatsappOpen}
         leads={whatsappQueue}
         skipped={whatsappSkipped}
+      />
+      <EnqueueWhatsAppDialog
+        open={enqueueOpen}
+        onOpenChange={setEnqueueOpen}
+        leads={enqueueLeads}
       />
     </div>
   )

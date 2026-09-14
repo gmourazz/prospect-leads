@@ -48,6 +48,13 @@ export function SettingsPage() {
     update.mutate({ [key]: value })
   }
 
+  function toggleWhatsAppWeekday(iso: number) {
+    const current = data?.wa_weekdays ?? [1, 2, 3, 4, 5]
+    const next = current.includes(iso) ? current.filter((d) => d !== iso) : [...current, iso].sort()
+    if (next.length === 0) return
+    update.mutate({ wa_weekdays: next })
+  }
+
   return (
     <div>
       <PageHeader
@@ -173,6 +180,101 @@ export function SettingsPage() {
 
         <Card>
           <CardHeader>
+            <CardTitle>Ritmo do WhatsApp automático</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading || !data ? (
+              <Skeleton className="h-32 w-full" />
+            ) : (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <PacingField
+                    label="Máximo por dia"
+                    value={data.wa_daily_limit}
+                    min={1}
+                    max={200}
+                    onCommit={(v) => update.mutate({ wa_daily_limit: v })}
+                  />
+                  <PacingField
+                    label="Mensagens por rodada"
+                    value={data.wa_burst_size}
+                    min={1}
+                    max={50}
+                    onCommit={(v) => update.mutate({ wa_burst_size: v })}
+                  />
+                  <PacingField
+                    label="Intervalo mínimo (s)"
+                    value={data.wa_min_interval_sec}
+                    min={20}
+                    max={3600}
+                    onCommit={(v) => update.mutate({ wa_min_interval_sec: v })}
+                  />
+                  <PacingField
+                    label="Intervalo máximo (s)"
+                    value={data.wa_max_interval_sec}
+                    min={20}
+                    max={3600}
+                    onCommit={(v) => update.mutate({ wa_max_interval_sec: v })}
+                  />
+                  <PacingField
+                    label="Pausa entre rodadas (min)"
+                    value={data.wa_burst_pause_min}
+                    min={0}
+                    max={240}
+                    onCommit={(v) => update.mutate({ wa_burst_pause_min: v })}
+                  />
+                  <div className="flex items-end gap-1.5 rounded-xl bg-muted px-3 py-2 text-[12.5px]">
+                    <input
+                      type="number"
+                      min={0}
+                      max={23}
+                      defaultValue={data.wa_hour_start}
+                      onBlur={(e) => update.mutate({ wa_hour_start: Number(e.target.value) })}
+                      className="w-8 bg-transparent text-right tabular outline-none"
+                    />
+                    <span className="text-muted-foreground">h –</span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={24}
+                      defaultValue={data.wa_hour_end}
+                      onBlur={(e) => update.mutate({ wa_hour_end: Number(e.target.value) })}
+                      className="w-8 bg-transparent tabular outline-none"
+                    />
+                    <span className="text-muted-foreground">h</span>
+                  </div>
+                </div>
+
+                <div className="mt-4 flex flex-wrap gap-1.5">
+                  {WEEKDAYS.map((d) => (
+                    <button
+                      key={d.iso}
+                      type="button"
+                      onClick={() => toggleWhatsAppWeekday(d.iso)}
+                      className={cn(
+                        'rounded-full border px-2.5 py-1 text-[12px] font-medium transition-colors',
+                        data.wa_weekdays.includes(d.iso)
+                          ? 'border-primary/40 bg-primary/10 text-primary'
+                          : 'border-transparent bg-muted text-muted-foreground',
+                      )}
+                    >
+                      {d.label}
+                    </button>
+                  ))}
+                </div>
+
+                <p className="mt-3 text-[12px] leading-relaxed text-muted-foreground">
+                  Ao contrário do email, aqui cada mensagem pede permissão: o backend só libera a
+                  próxima quando o intervalo passou. Afrouxar esses números é exatamente o que faz o
+                  WhatsApp restringir um número — os padrões são conservadores de propósito.
+                </p>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
             <CardTitle>Assinatura</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -198,7 +300,7 @@ export function SettingsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Prévia do final da mensagem</CardTitle>
+            <CardTitle>Prévia do final do email</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="rounded-xl bg-primary/5 p-4">
@@ -212,6 +314,39 @@ export function SettingsPage() {
           </CardContent>
         </Card>
       </div>
+    </div>
+  )
+}
+
+/** Campo numérico que só salva ao sair — digitar "1" a caminho de "120" não
+ *  pode virar um limite de uma mensagem por dia salvo no meio do caminho. */
+function PacingField({
+  label,
+  value,
+  min,
+  max,
+  onCommit,
+}: {
+  label: string
+  value: number
+  min: number
+  max: number
+  onCommit: (value: number) => void
+}) {
+  return (
+    <div className="space-y-1">
+      <Label className="text-[11.5px]">{label}</Label>
+      <input
+        type="number"
+        min={min}
+        max={max}
+        defaultValue={value}
+        onBlur={(e) => {
+          const next = Number(e.target.value)
+          if (next !== value) onCommit(next)
+        }}
+        className="w-full rounded-xl bg-muted px-3 py-2 text-[13px] tabular outline-none"
+      />
     </div>
   )
 }

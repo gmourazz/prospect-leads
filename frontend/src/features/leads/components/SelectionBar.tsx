@@ -1,4 +1,4 @@
-import { MessageCircle, Send, X } from 'lucide-react'
+import { MessageCircle, Send, X, Zap } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { formatNumber } from '@/lib/format'
 
@@ -7,11 +7,15 @@ export function SelectionBar({
   onClear,
   onCreateCampaign,
   onSendWhatsApp,
+  onQueueWhatsApp,
 }: {
   count: number
   onClear: () => void
   onCreateCampaign: () => void
+  /** Abre uma conversa por vez, com a pessoa presente. */
   onSendWhatsApp?: () => void
+  /** Enfileira para o bridge enviar sozinho. */
+  onQueueWhatsApp?: () => void
 }) {
   if (count === 0) return null
   return (
@@ -23,6 +27,12 @@ export function SelectionBar({
         <Send />
         Criar campanha
       </Button>
+      {onQueueWhatsApp && (
+        <Button size="sm" variant="secondary" onClick={onQueueWhatsApp}>
+          <Zap />
+          Enviar automático
+        </Button>
+      )}
       {onSendWhatsApp && (
         <Button size="sm" variant="secondary" onClick={onSendWhatsApp}>
           <MessageCircle />
