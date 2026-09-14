@@ -173,11 +173,19 @@ export function LeadFiltersSheet({
         </Field>
 
         <Field label="Janela de contato" icon={CalendarClock}>
-          <SegmentedControl
-            options={WINDOW_OPTIONS}
+          <Select
             value={filters.contact_state ?? 'all'}
-            onChange={(v) => onApply({ contact_state: v === 'all' ? undefined : v })}
-          />
+            onValueChange={(v) => onApply({ contact_state: v === 'all' ? undefined : v })}
+          >
+            <SelectTrigger className="h-10 rounded-xl border-transparent bg-muted">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {WINDOW_OPTIONS.map((o) => (
+                <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </Field>
       </div>
 
