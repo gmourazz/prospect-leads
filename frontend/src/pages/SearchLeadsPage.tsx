@@ -104,6 +104,7 @@ export function SearchLeadsPage() {
               state: params.state,
               cities: params.cities,
               limit: params.limit,
+              ...params.filters,
             })
           }
         />

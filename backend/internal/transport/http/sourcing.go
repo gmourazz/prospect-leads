@@ -70,6 +70,8 @@ func (a *API) searchLeads(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	filters := searchFilters(body.OnlyWithoutSite, body.SkipExisting,
+		body.RequireMobile, body.IncludeBlocked)
 	merged := application.SearchOutcome{}
 	seen := map[string]bool{}
 	for _, seg := range wanted {
@@ -96,16 +98,7 @@ func (a *API) searchLeads(w http.ResponseWriter, r *http.Request) {
 			c.SegmentID = seg.ID.String()
 			c.SegmentName = seg.Name
 
-			if c.Website != "" && boolOr(body.OnlyWithoutSite, true) {
-				continue
-			}
-			if c.ExistingCompany && boolOr(body.SkipExisting, true) {
-				continue
-			}
-			if !c.IsMobile && !c.Invalid && boolOr(body.RequireMobile, false) {
-				continue
-			}
-			if c.IsBlocked && !boolOr(body.IncludeBlocked, false) {
+			if !filters.Keep(c) {
 				continue
 			}
 
@@ -128,6 +121,17 @@ func (a *API) searchLeads(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, merged)
+}
+
+// searchFilters resolves the optional toggles to the defaults the search page
+// assumes when a client omits them.
+func searchFilters(onlyWithoutSite, skipExisting, requireMobile, includeBlocked *bool) application.SearchFilters {
+	return application.SearchFilters{
+		OnlyWithoutSite: boolOr(onlyWithoutSite, true),
+		SkipExisting:    boolOr(skipExisting, true),
+		RequireMobile:   boolOr(requireMobile, false),
+		IncludeBlocked:  boolOr(includeBlocked, false),
+	}
 }
 
 func boolOr(v *bool, fallback bool) bool {
@@ -232,16 +236,22 @@ func (a *API) searchUsage(w http.ResponseWriter, r *http.Request) {
 // the picker) rather than the backend re-fetching it.
 func (a *API) searchState(w http.ResponseWriter, r *http.Request) {
 	var body struct {
-		SegmentID string   `json:"segment_id"`
-		State     string   `json:"state"`
-		Cities    []string `json:"cities"`
-		Limit     int      `json:"limit"`
+		SegmentID       string   `json:"segment_id"`
+		State           string   `json:"state"`
+		Cities          []string `json:"cities"`
+		Limit           int      `json:"limit"`
+		OnlyWithoutSite *bool    `json:"only_without_site"`
+		SkipExisting    *bool    `json:"skip_existing"`
+		RequireMobile   *bool    `json:"require_mobile"`
+		IncludeBlocked  *bool    `json:"include_blocked"`
 	}
 	if err := decode(r, &body); err != nil {
 		writeError(w, r, err)
 		return
 	}
-	queued, err := a.Sourcing.SearchState(r.Context(), body.State, body.Cities, body.SegmentID, body.Limit)
+	filters := searchFilters(body.OnlyWithoutSite, body.SkipExisting,
+		body.RequireMobile, body.IncludeBlocked)
+	queued, err := a.Sourcing.SearchState(r.Context(), body.State, body.Cities, body.SegmentID, body.Limit, filters)
 	if err != nil {
 		writeError(w, r, err)
 		return

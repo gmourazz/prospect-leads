@@ -51,7 +51,13 @@ export function SearchForm({
   preset,
 }: {
   onSearch: (params: SearchParams) => void
-  onSearchState: (params: { segmentId: string; state: string; cities: string[]; limit: number }) => void
+  onSearchState: (params: {
+    segmentId: string
+    state: string
+    cities: string[]
+    limit: number
+    filters: SearchFilters
+  }) => void
   isLoading: boolean
   isStateSearchRunning: boolean
   /** Set when "Repetir" is clicked on a recent search, so the form jumps to
@@ -110,7 +116,7 @@ export function SearchForm({
       onSubmit={(e) => {
         e.preventDefault()
         if (isAllCities) {
-          if (cities && cities.length > 0) onSearchState({ segmentId, state, cities, limit })
+          if (cities && cities.length > 0) onSearchState({ segmentId, state, cities, limit, filters })
         } else if (city) {
           onSearch({ segmentId, city, state, limit, filters })
         }

@@ -75,6 +75,12 @@ type EnrichmentProgress struct {
 
 // StateSearchProgress is the live state of the current (or last) state-wide
 // search, shaped for the screen that polls it.
+//
+// The failure counters matter as much as LeadsFound: every way this run can
+// come up empty — the provider rejecting every call, results arriving without
+// a usable phone, a city failing to import — is survivable by design, so
+// without them the screen reports a clean "finished, 0 leads" for causes as
+// different as a dead API key and a genuinely empty region.
 type StateSearchProgress struct {
 	Running         bool   `json:"running"`
 	State           string `json:"state"`
@@ -82,6 +88,11 @@ type StateSearchProgress struct {
 	ProcessedCities int    `json:"processed_cities"`
 	CurrentCity     string `json:"current_city"`
 	LeadsFound      int    `json:"leads_found"`
+	FailedCalls     int    `json:"failed_calls"`
+	NoPhone         int    `json:"no_phone"`
+	Filtered        int    `json:"filtered"`
+	FailedCities    int    `json:"failed_cities"`
+	LastError       string `json:"last_error,omitempty"`
 	Cancelled       bool   `json:"cancelled"`
 	StartedAt       string `json:"started_at,omitempty"`
 	FinishedAt      string `json:"finished_at,omitempty"`
@@ -112,7 +123,7 @@ func (s *SourcingService) CancelStateSearch() error {
 // same "results land straight in Leads" behavior as a single-city search,
 // just paced across a background run instead of one request. Returns the
 // number of cities queued; the run itself continues after this returns.
-func (s *SourcingService) SearchState(ctx context.Context, state string, cities []string, segmentID string, limit int) (int, error) {
+func (s *SourcingService) SearchState(ctx context.Context, state string, cities []string, segmentID string, limit int, filters SearchFilters) (int, error) {
 	if state == "" {
 		return 0, domain.Validation("estado é obrigatório")
 	}
@@ -162,12 +173,13 @@ func (s *SourcingService) SearchState(ctx context.Context, state string, cities 
 	s.stateProgressMu.Unlock()
 
 	logger := observability.FromContext(ctx)
-	go s.runStateSearch(bg, logger, state, cities, wanted, limit)
+	go s.runStateSearch(bg, logger, state, cities, wanted, limit, filters)
 	return len(cities), nil
 }
 
 func (s *SourcingService) runStateSearch(
 	ctx context.Context, logger *slog.Logger, state string, cities []string, segments []domain.Segment, limit int,
+	filters SearchFilters,
 ) {
 	defer s.stateSearching.Unlock()
 	defer func() {
@@ -196,6 +208,10 @@ func (s *SourcingService) runStateSearch(
 			outcome, err := s.Search(ctx, seg.Slug, seg.Name, city, state, limit)
 			if err != nil {
 				logger.Error("state search: segment failed", "segment", seg.Name, "city", city, "error", err)
+				s.stateProgressMu.Lock()
+				s.stateProgress.FailedCalls++
+				s.stateProgress.LastError = err.Error()
+				s.stateProgressMu.Unlock()
 			} else {
 				merged.Provider = outcome.Provider
 				for _, c := range outcome.Results {
@@ -224,8 +240,14 @@ func (s *SourcingService) runStateSearch(
 		}
 
 		var candidates []SearchCandidateInput
+		noPhone, filtered := 0, 0
 		for _, c := range merged.Results {
 			if c.Invalid {
+				noPhone++
+				continue
+			}
+			if !filters.Keep(c) {
+				filtered++
 				continue
 			}
 			var segID *uuid.UUID
@@ -244,6 +266,10 @@ func (s *SourcingService) runStateSearch(
 			result, err := s.ImportSelected(ctx, ImportSelectedCommand{Provider: merged.Provider, Candidates: candidates})
 			if err != nil {
 				logger.Error("state search: import failed", "city", city, "error", err)
+				s.stateProgressMu.Lock()
+				s.stateProgress.FailedCities++
+				s.stateProgress.LastError = err.Error()
+				s.stateProgressMu.Unlock()
 			} else {
 				s.stateProgressMu.Lock()
 				s.stateProgress.LeadsFound += result.Created + result.Merged
@@ -252,12 +278,18 @@ func (s *SourcingService) runStateSearch(
 		}
 
 		s.stateProgressMu.Lock()
+		s.stateProgress.NoPhone += noPhone
+		s.stateProgress.Filtered += filtered
 		s.stateProgress.ProcessedCities = i + 1
 		s.stateProgressMu.Unlock()
 	}
 
+	final := s.StateSearchStatus()
 	logger.Info("state search finished", "action", "sourcing.state_search.done",
-		"state", state, "cities", len(cities), "leads_found", s.StateSearchStatus().LeadsFound)
+		"state", state, "cities", len(cities), "leads_found", final.LeadsFound,
+		"failed_calls", final.FailedCalls, "no_phone", final.NoPhone,
+		"filtered", final.Filtered, "failed_cities", final.FailedCities,
+		"last_error", final.LastError)
 }
 
 // EnrichmentStatus reports how far the background discovery got.
@@ -341,6 +373,34 @@ type SearchOutcome struct {
 	Provider string            `json:"provider"`
 	IsDemo   bool              `json:"is_demo"`
 	Results  []SearchCandidate `json:"results"`
+}
+
+// SearchFilters are the toggles shown above the search form. They live here,
+// rather than inline in the handler, because the single-city search and the
+// state-wide run have to agree on what each one means — a toggle that quietly
+// applies to one path and not the other is worse than no toggle at all.
+type SearchFilters struct {
+	OnlyWithoutSite bool
+	SkipExisting    bool
+	RequireMobile   bool
+	IncludeBlocked  bool
+}
+
+// Keep reports whether a candidate survives the toggles.
+func (f SearchFilters) Keep(c SearchCandidate) bool {
+	if c.Website != "" && f.OnlyWithoutSite {
+		return false
+	}
+	if c.ExistingCompany && f.SkipExisting {
+		return false
+	}
+	if !c.IsMobile && !c.Invalid && f.RequireMobile {
+		return false
+	}
+	if c.IsBlocked && !f.IncludeBlocked {
+		return false
+	}
+	return true
 }
 
 // Search calls the configured provider and immediately annotates each

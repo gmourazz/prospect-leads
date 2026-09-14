@@ -77,8 +77,9 @@ export const sourcingApi = {
       })),
     }),
 
-  searchState: (body: { segment_id: string; state: string; cities: string[]; limit?: number }) =>
-    http.post<{ queued: number }>('/searches/state', body),
+  searchState: (
+    body: { segment_id: string; state: string; cities: string[]; limit?: number } & Partial<SearchFilters>,
+  ) => http.post<{ queued: number }>('/searches/state', body),
 
   stateSearchProgress: () => http.get<StateSearchProgress>('/searches/state/progress'),
 
@@ -100,6 +101,11 @@ export interface StateSearchProgress {
   processed_cities: number
   current_city: string
   leads_found: number
+  failed_calls: number
+  no_phone: number
+  filtered: number
+  failed_cities: number
+  last_error?: string
   cancelled: boolean
   started_at?: string
   finished_at?: string

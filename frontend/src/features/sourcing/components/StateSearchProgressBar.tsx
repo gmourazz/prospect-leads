@@ -1,4 +1,4 @@
-import { Ban, CheckCircle2, Loader2 } from 'lucide-react'
+import { AlertTriangle, Ban, CheckCircle2, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { formatNumber } from '@/lib/format'
 import { useCancelStateSearch } from '../hooks/useSourcing'
@@ -8,11 +8,34 @@ import type { StateSearchProgress } from '../api/sourcing.api'
 // something on screen the whole time, not just a toast when it kicks off.
 export function StateSearchProgressBar({ progress }: { progress: StateSearchProgress }) {
   const cancel = useCancelStateSearch()
-  const { running, state, total_cities, processed_cities, current_city, leads_found, cancelled } = progress
+  const {
+    running, state, total_cities, processed_cities, current_city, leads_found, cancelled,
+    failed_calls, no_phone, filtered, failed_cities, last_error,
+  } = progress
 
   if (!running && total_cities === 0) return null
 
   const pct = total_cities > 0 ? Math.round((processed_cities / total_cities) * 100) : 0
+
+  // A run that ends with nothing is the ambiguous case: the provider may have
+  // rejected every call, or the region may simply have no listed phones. The
+  // counters are the only way to tell those apart from this screen.
+  const notes: string[] = []
+  if (failed_calls > 0) {
+    notes.push(`${formatNumber(failed_calls)} consulta(s) ao provedor falharam`)
+  }
+  if (no_phone > 0) {
+    notes.push(`${formatNumber(no_phone)} resultado(s) sem telefone descartados`)
+  }
+  if (filtered > 0) {
+    notes.push(`${formatNumber(filtered)} descartado(s) pelos filtros acima`)
+  }
+  if (failed_cities > 0) {
+    notes.push(`${formatNumber(failed_cities)} cidade(s) falharam ao salvar`)
+  }
+  if (!running && leads_found === 0 && notes.length === 0) {
+    notes.push('O provedor não retornou nenhuma empresa para esses filtros')
+  }
 
   return (
     <div className="mb-4 rounded-2xl border border-border bg-surface px-4 py-3">
@@ -61,6 +84,16 @@ export function StateSearchProgressBar({ progress }: { progress: StateSearchProg
             Cidade atual: {current_city || '—'}. Pode sair desta tela, a busca continua.
           </p>
         </>
+      )}
+
+      {notes.length > 0 && (
+        <div className="mt-2.5 flex items-start gap-1.5 text-[11.5px] text-muted-foreground">
+          <AlertTriangle className="mt-px size-3.5 shrink-0 text-warning" />
+          <span>
+            {notes.join(' · ')}
+            {last_error && <span className="block opacity-80">Último erro: {last_error}</span>}
+          </span>
+        </div>
       )}
     </div>
   )
