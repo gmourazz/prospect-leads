@@ -97,6 +97,11 @@ func (p *Provider) Search(ctx context.Context, q sourcing.SearchQuery) (sourcing
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(io.LimitReader(resp.Body, 2048))
+		if resp.StatusCode == http.StatusTooManyRequests {
+			return sourcing.SearchResult{}, &sourcing.QuotaExceededError{
+				Provider: p.Name(), Detail: string(body),
+			}
+		}
 		return sourcing.SearchResult{}, fmt.Errorf("google places retornou %d: %s", resp.StatusCode, string(body))
 	}
 

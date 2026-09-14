@@ -55,6 +55,7 @@ func main() {
 	idempotency := postgres.NewIdempotencyRepo(store)
 	users := postgres.NewUserRepo(store)
 	searchUsage := postgres.NewSearchUsageRepo(store)
+	providerQuota := postgres.NewProviderQuotaRepo(store)
 	searchRuns := postgres.NewSearchRunRepo(store)
 	attachmentRepo := postgres.NewAttachmentRepo(store)
 	settingsRepo := postgres.NewSettingsRepo(store)
@@ -99,7 +100,7 @@ func main() {
 		Outreach:    application.NewOutreachService(store, outreachRepo, leads, templates, idempotency, settingsRepo, gateway),
 		Imports:     application.NewImportService(store, importsRepo, contacts, companies, segments, idempotency),
 		LeadService: application.NewLeadService(store, leads, companies, contacts),
-		Sourcing:    application.NewSourcingService(store, companies, contacts, segments, leads, searchUsage, leadProvider, emailFinder),
+		Sourcing:    application.NewSourcingService(store, companies, contacts, segments, leads, searchUsage, providerQuota, leadProvider, emailFinder),
 		Users:       users,
 		Attachments: attachmentRepo,
 		SearchRuns:  searchRuns,

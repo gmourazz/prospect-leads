@@ -150,6 +150,7 @@ func (a *API) mountProtectedRoutes(r chi.Router) {
 	r.Get("/searches/recent", a.recentSearches)
 	r.Post("/searches/import", a.importSearchResults)
 	r.Get("/searches/usage", a.searchUsage)
+	r.Get("/searches/quota", a.searchQuota)
 	r.Post("/searches/state", a.searchState)
 	r.Get("/searches/state/progress", a.searchStateProgress)
 	r.Post("/searches/state/cancel", a.cancelSearchState)

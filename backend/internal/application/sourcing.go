@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"sync"
 	"time"
@@ -37,6 +38,7 @@ type SourcingService struct {
 	segments  *postgres.SegmentRepo
 	leads     *postgres.LeadRepo
 	usage     *postgres.SearchUsageRepo
+	quota     *postgres.ProviderQuotaRepo
 	provider  sourcing.Provider
 	emails    *emailfinder.Finder
 
@@ -315,13 +317,14 @@ func NewSourcingService(
 	segments *postgres.SegmentRepo,
 	leads *postgres.LeadRepo,
 	usage *postgres.SearchUsageRepo,
+	quota *postgres.ProviderQuotaRepo,
 	provider sourcing.Provider,
 	emails *emailfinder.Finder,
 ) *SourcingService {
 	return &SourcingService{
 		store: store, companies: companies, contacts: contacts,
-		segments: segments, leads: leads, usage: usage, provider: provider,
-		emails: emails,
+		segments: segments, leads: leads, usage: usage, quota: quota,
+		provider: provider, emails: emails,
 	}
 }
 
@@ -331,6 +334,15 @@ type UsageStatus struct {
 	CallCount int    `json:"call_count"`
 	FreeQuota int    `json:"free_quota"`
 	IsBilled  bool   `json:"is_billed"`
+}
+
+// DailyQuota reports today's real quota state for whichever provider is
+// active — distinct from Usage, which is a monthly count that only tracks
+// calls that succeeded. This is the one that actually predicts whether the
+// next search will work: Google's daily reset is what silently turns "0
+// leads" into the normal outcome once the day's calls run out.
+func (s *SourcingService) DailyQuota(ctx context.Context) (postgres.DailyQuotaStatus, error) {
+	return s.quota.Today(ctx, s.provider.Name())
 }
 
 // Usage reports this month's call count for whichever provider is active, so
@@ -409,10 +421,21 @@ func (f SearchFilters) Keep(c SearchCandidate) bool {
 // selection screen shows that BEFORE the user picks anyone, exactly like the
 // board does for collected leads.
 func (s *SourcingService) Search(ctx context.Context, segmentSlug, segmentName, city, state string, limit int) (SearchOutcome, error) {
+	providerName := s.provider.Name()
+	if err := s.quota.RecordCall(ctx, providerName); err != nil {
+		observability.FromContext(ctx).Error("failed to record provider call", "error", err)
+	}
+
 	result, err := s.provider.Search(ctx, sourcing.SearchQuery{
 		Segment: segmentName, City: city, State: state, Limit: limit,
 	})
 	if err != nil {
+		var quotaErr *sourcing.QuotaExceededError
+		if errors.As(err, &quotaErr) {
+			if qerr := s.quota.RecordQuotaExceeded(ctx, providerName); qerr != nil {
+				observability.FromContext(ctx).Error("failed to record quota exceeded", "error", qerr)
+			}
+		}
 		return SearchOutcome{}, domain.Wrap(domain.CodeProviderUnavailable,
 			"não foi possível buscar leads agora", err)
 	}

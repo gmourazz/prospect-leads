@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { CheckCircle2, Sparkles } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Sparkles } from 'lucide-react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { EmptyState } from '@/components/common/EmptyState'
 import { Button } from '@/components/ui/button'
@@ -10,19 +10,21 @@ import { SearchResultsTable } from '@/features/sourcing/components/SearchResults
 import { StateSearchProgressBar } from '@/features/sourcing/components/StateSearchProgressBar'
 import { UsageIndicator } from '@/features/sourcing/components/UsageIndicator'
 import {
+  useDailyQuota,
   useImportSelected,
   useRecentSearches,
   useSearchLeads,
   useSearchState,
   useStateSearchProgress,
 } from '@/features/sourcing/hooks/useSourcing'
-import { formatNumber } from '@/lib/format'
+import { formatDateTime, formatNumber } from '@/lib/format'
 import type { ImportSelectedResult, SearchRun } from '@/features/sourcing/api/sourcing.api'
 
 export function SearchLeadsPage() {
   const search = useSearchLeads()
   const importSelected = useImportSelected()
   const searchState = useSearchState()
+  const { data: quota } = useDailyQuota()
   const { data: stateProgress } = useStateSearchProgress()
   const { data: recent } = useRecentSearches()
   const [imported, setImported] = useState<ImportSelectedResult | null>(null)
@@ -91,6 +93,21 @@ export function SearchLeadsPage() {
         description="Encontre empresas por segmento e cidade — os resultados entram direto em Leads"
         actions={<UsageIndicator />}
       />
+
+      {quota?.exceeded && (
+        <div className="mb-4 flex items-start gap-2.5 rounded-2xl border border-danger/30 bg-danger-subtle px-5 py-4 text-[13px] text-danger">
+          <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+          <span>
+            Cota diária do {quota.provider === 'google_places' ? 'Google Places' : quota.provider}{' '}
+            esgotada — buscas agora vão falhar. Só volta a funcionar depois de{' '}
+            <strong>{formatDateTime(quota.resets_at)}</strong>.{' '}
+            <Link to="/cota-busca" className="underline">
+              Ver detalhes
+            </Link>
+            .
+          </span>
+        </div>
+      )}
 
       <div className="mb-4 rounded-2xl border border-border bg-surface p-6">
         <SearchForm

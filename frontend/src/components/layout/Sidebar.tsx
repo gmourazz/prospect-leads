@@ -3,6 +3,7 @@ import {
   BarChart3,
   FileSpreadsheet,
   Clock,
+  Gauge,
   LayoutDashboard,
   MessageSquareText,
   Search,
@@ -28,6 +29,7 @@ const NAV = [
 const NAV_SECONDARY = [
   { to: '/segmentos', label: 'Segmentos', icon: Tags },
   { to: '/bloqueios', label: 'Não contatar', icon: ShieldBan },
+  { to: '/cota-busca', label: 'Cota de busca', icon: Gauge },
   { to: '/configuracoes', label: 'Configurações', icon: Settings },
 ]
 

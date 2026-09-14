@@ -229,6 +229,18 @@ func (a *API) searchUsage(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, status)
 }
 
+// searchQuota reports today's real provider quota — whether it's already
+// been hit, and when it resets — so the search page can say so up front
+// instead of letting another attempt run into the same wall.
+func (a *API) searchQuota(w http.ResponseWriter, r *http.Request) {
+	status, err := a.Sourcing.DailyQuota(r.Context())
+	if err != nil {
+		writeError(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, status)
+}
+
 // searchState kicks off a background search across every city it's given —
 // "buscar em todo o estado" — paced so it doesn't blow through the provider
 // quota or hold the request open for what can be a very long run. The city

@@ -55,6 +55,8 @@ export interface ImportSelectedResult {
 export const sourcingApi = {
   usage: () => http.get<UsageStatus>('/searches/usage'),
 
+  quota: () => http.get<DailyQuotaStatus>('/searches/quota'),
+
   search: (
     body: { segment_id: string; city: string; state: string; limit?: number } & Partial<SearchFilters>,
   ) => http.post<SearchOutcome>('/searches', body),
@@ -92,6 +94,18 @@ export interface UsageStatus {
   call_count: number
   free_quota: number
   is_billed: boolean
+}
+
+/** Today's real quota state for whichever provider is active — distinct from
+ * UsageStatus, which is a monthly, success-only count and never tells you the
+ * daily wall got hit until searches have already been coming back empty. */
+export interface DailyQuotaStatus {
+  provider: string
+  quota_day: string
+  call_count: number
+  exceeded: boolean
+  exceeded_at?: string
+  resets_at: string
 }
 
 export interface StateSearchProgress {

@@ -41,3 +41,16 @@ type Provider interface {
 	Name() string
 	Search(ctx context.Context, q SearchQuery) (SearchResult, error)
 }
+
+// QuotaExceededError lets a provider tell the application layer "this call
+// failed because a rate/quota limit was hit" as opposed to any other
+// failure — the only distinction that matters for deciding whether to record
+// today's quota as exhausted.
+type QuotaExceededError struct {
+	Provider string
+	Detail   string
+}
+
+func (e *QuotaExceededError) Error() string {
+	return "cota do provedor " + e.Provider + " excedida: " + e.Detail
+}

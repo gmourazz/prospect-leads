@@ -13,6 +13,7 @@ import { SegmentsPage } from '@/pages/SegmentsPage'
 import { SuppressionPage } from '@/pages/SuppressionPage'
 import { AwaitingReplyPage } from '@/pages/AwaitingReplyPage'
 import { SettingsPage } from '@/pages/SettingsPage'
+import { QuotaPage } from '@/pages/QuotaPage'
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
@@ -33,6 +34,7 @@ export const router = createBrowserRouter([
       { path: 'buscar', element: <SearchLeadsPage /> },
       { path: 'segmentos', element: <SegmentsPage /> },
       { path: 'bloqueios', element: <SuppressionPage /> },
+      { path: 'cota-busca', element: <QuotaPage /> },
       { path: 'configuracoes', element: <SettingsPage /> },
         ],
       },

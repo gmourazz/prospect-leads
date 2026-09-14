@@ -11,8 +11,14 @@ export function useSearchLeads() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['searches', 'usage'] })
       queryClient.invalidateQueries({ queryKey: ['searches', 'recent'] })
+      queryClient.invalidateQueries({ queryKey: ['searches', 'quota'] })
     },
-    onError: (error) => toast.error(error instanceof ApiError ? error.userMessage : 'Algo deu errado.'),
+    // A failed search is exactly when the quota is most likely to have just
+    // flipped to exceeded, so this is the one error path worth refreshing on.
+    onError: (error) => {
+      toast.error(error instanceof ApiError ? error.userMessage : 'Algo deu errado.')
+      queryClient.invalidateQueries({ queryKey: ['searches', 'quota'] })
+    },
   })
 }
 
@@ -47,6 +53,17 @@ export function useSearchUsage() {
     queryKey: ['searches', 'usage'],
     queryFn: () => sourcingApi.usage(),
     staleTime: 30_000,
+  })
+}
+
+/** Polls slowly on its own (not just after a search) so a page left open
+ * shows the quota clearing at the next Pacific midnight without a reload. */
+export function useDailyQuota() {
+  return useQuery({
+    queryKey: ['searches', 'quota'],
+    queryFn: () => sourcingApi.quota(),
+    staleTime: 30_000,
+    refetchInterval: 60_000,
   })
 }
 
