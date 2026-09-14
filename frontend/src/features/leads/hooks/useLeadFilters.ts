@@ -1,6 +1,8 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import type { LeadFilters } from '@/types/domain'
+
+const LAST_FILTERS_KEY = 'prospect_last_lead_filters'
 
 const KEYS = [
   'segment_id',
@@ -23,6 +25,31 @@ const KEYS = [
  */
 export function useLeadFilters() {
   const [searchParams, setSearchParams] = useSearchParams()
+  const restored = useRef(false)
+
+  // Runs once per mount: if the URL arrived with no filters at all (a plain
+  // nav to /leads, not a shared link), fall back to whatever this browser
+  // last had applied instead of always starting blank.
+  useEffect(() => {
+    if (restored.current) return
+    restored.current = true
+    if (searchParams.toString()) return
+    try {
+      const saved = localStorage.getItem(LAST_FILTERS_KEY)
+      if (saved) setSearchParams(new URLSearchParams(saved), { replace: true })
+    } catch {
+      /* private browsing / storage disabled: just start blank */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(LAST_FILTERS_KEY, searchParams.toString())
+    } catch {
+      /* ignore */
+    }
+  }, [searchParams])
 
   const filters = useMemo<LeadFilters>(() => {
     const result: LeadFilters = { limit: 50 }

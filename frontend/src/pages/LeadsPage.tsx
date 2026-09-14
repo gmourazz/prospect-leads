@@ -20,7 +20,7 @@ import { Button } from '@/components/ui/button'
 import { formatNumber } from '@/lib/format'
 import { downloadCsv, toCsv } from '@/lib/csv'
 import { contactBadge } from '@/features/leads/model/contact-badge'
-import { WEBSITE_STATUS_LABELS } from '@/types/domain'
+import { WEBSITE_STATUS_LABELS, type Lead } from '@/types/domain'
 
 export function LeadsPage() {
   const { filters, setFilter, reset, activeCount } = useLeadFilters()
@@ -29,6 +29,7 @@ export function LeadsPage() {
   const [newLeadOpen, setNewLeadOpen] = useState(false)
   const [campaignOpen, setCampaignOpen] = useState(false)
   const [whatsappOpen, setWhatsappOpen] = useState(false)
+  const [whatsappQueue, setWhatsappQueue] = useState<Lead[]>([])
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [density, setDensity] = useLeadDensity()
   const [exporting, setExporting] = useState(false)
@@ -187,7 +188,17 @@ export function LeadsPage() {
         count={selected.size}
         onClear={() => setSelected(new Set())}
         onCreateCampaign={() => setCampaignOpen(true)}
-        onSendWhatsApp={selectedForWhatsApp.length > 0 ? () => setWhatsappOpen(true) : undefined}
+        onSendWhatsApp={
+          selectedForWhatsApp.length > 0
+            ? () => {
+                // Snapshot at open time: confirming a send invalidates the
+                // leads query, which can reorder/refetch the current page
+                // and silently shrink a queue that stayed wired to live data.
+                setWhatsappQueue(selectedForWhatsApp)
+                setWhatsappOpen(true)
+              }
+            : undefined
+        }
       />
 
       <NewLeadDialog open={newLeadOpen} onOpenChange={setNewLeadOpen} />
@@ -200,7 +211,7 @@ export function LeadsPage() {
       <BulkWhatsAppDialog
         open={whatsappOpen}
         onOpenChange={setWhatsappOpen}
-        leads={selectedForWhatsApp}
+        leads={whatsappQueue}
       />
     </div>
   )
