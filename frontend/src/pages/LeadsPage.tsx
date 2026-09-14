@@ -13,6 +13,7 @@ import { LeadsTable } from '@/features/leads/components/LeadsTable'
 import { EnrichProgressBar } from '@/features/leads/components/EnrichProgressBar'
 import { LeadsEmptyState } from '@/features/leads/components/LeadsEmptyState'
 import { SelectionBar } from '@/features/leads/components/SelectionBar'
+import { BulkWhatsAppDialog } from '@/features/leads/components/BulkWhatsAppDialog'
 import { NewLeadDialog } from '@/features/leads/components/NewLeadDialog'
 import { CreateCampaignDialog } from '@/features/campaigns/components/CreateCampaignDialog'
 import { Button } from '@/components/ui/button'
@@ -27,6 +28,7 @@ export function LeadsPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [newLeadOpen, setNewLeadOpen] = useState(false)
   const [campaignOpen, setCampaignOpen] = useState(false)
+  const [whatsappOpen, setWhatsappOpen] = useState(false)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [density, setDensity] = useLeadDensity()
   const [exporting, setExporting] = useState(false)
@@ -76,6 +78,10 @@ export function LeadsPage() {
       leads.forEach((l) => (checked ? next.add(l.id) : next.delete(l.id)))
       return next
     })
+
+  const selectedForWhatsApp = leads.filter(
+    (l) => selected.has(l.id) && l.contact.contact_point_id && !l.contact.is_suppressed,
+  )
 
   const applyFilters = (patch: Record<string, unknown>) => {
     Object.entries(patch).forEach(([key, value]) => setFilter(key, value ? String(value) : undefined))
@@ -181,6 +187,7 @@ export function LeadsPage() {
         count={selected.size}
         onClear={() => setSelected(new Set())}
         onCreateCampaign={() => setCampaignOpen(true)}
+        onSendWhatsApp={selectedForWhatsApp.length > 0 ? () => setWhatsappOpen(true) : undefined}
       />
 
       <NewLeadDialog open={newLeadOpen} onOpenChange={setNewLeadOpen} />
@@ -189,6 +196,11 @@ export function LeadsPage() {
         onOpenChange={setCampaignOpen}
         filters={filters}
         matchingCount={counts?.available}
+      />
+      <BulkWhatsAppDialog
+        open={whatsappOpen}
+        onOpenChange={setWhatsappOpen}
+        leads={selectedForWhatsApp}
       />
     </div>
   )

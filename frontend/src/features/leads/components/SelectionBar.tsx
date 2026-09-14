@@ -1,4 +1,4 @@
-import { Send, X } from 'lucide-react'
+import { MessageCircle, Send, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { formatNumber } from '@/lib/format'
 
@@ -6,10 +6,12 @@ export function SelectionBar({
   count,
   onClear,
   onCreateCampaign,
+  onSendWhatsApp,
 }: {
   count: number
   onClear: () => void
   onCreateCampaign: () => void
+  onSendWhatsApp?: () => void
 }) {
   if (count === 0) return null
   return (
@@ -21,6 +23,12 @@ export function SelectionBar({
         <Send />
         Criar campanha
       </Button>
+      {onSendWhatsApp && (
+        <Button size="sm" variant="secondary" onClick={onSendWhatsApp}>
+          <MessageCircle />
+          Chamar no WhatsApp
+        </Button>
+      )}
       <Button variant="ghost" size="icon-sm" onClick={onClear} aria-label="Limpar seleção">
         <X />
       </Button>
