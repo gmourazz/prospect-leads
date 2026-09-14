@@ -25,7 +25,6 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { SegmentedControl } from '@/components/common/SegmentedControl'
 import { useSegments } from '@/features/segments/hooks/useSegments'
 import { useStates } from '@/features/sourcing/hooks/useCities'
 import { useCities } from '../hooks/useLeads'
@@ -157,19 +156,35 @@ export function LeadFiltersSheet({
         </Field>
 
         <Field label="Site" icon={Globe}>
-          <SegmentedControl
-            options={SITE_OPTIONS}
+          <Select
             value={filters.website_status ?? 'all'}
-            onChange={(v) => onApply({ website_status: v === 'all' ? undefined : v })}
-          />
+            onValueChange={(v) => onApply({ website_status: v === 'all' ? undefined : v })}
+          >
+            <SelectTrigger className="h-10 rounded-xl border-transparent bg-muted">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {SITE_OPTIONS.map((o) => (
+                <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </Field>
 
         <Field label="Email" icon={Mail}>
-          <SegmentedControl
-            options={EMAIL_OPTIONS}
+          <Select
             value={filters.has_email ?? 'all'}
-            onChange={(v) => onApply({ has_email: v === 'all' ? undefined : (v as 'true' | 'false') })}
-          />
+            onValueChange={(v) => onApply({ has_email: v === 'all' ? undefined : (v as 'true' | 'false') })}
+          >
+            <SelectTrigger className="h-10 rounded-xl border-transparent bg-muted">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {EMAIL_OPTIONS.map((o) => (
+                <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </Field>
 
         <Field label="Janela de contato" icon={CalendarClock}>
