@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/geovanna/prospect/backend/internal/adapters/postgres"
 	"github.com/geovanna/prospect/backend/internal/application"
 	"github.com/geovanna/prospect/backend/internal/domain"
 )
@@ -19,6 +20,12 @@ func (a *API) searchLeads(w http.ResponseWriter, r *http.Request) {
 		City      string `json:"city"`
 		State     string `json:"state"`
 		Limit     int    `json:"limit"`
+		// Pointers so an older client that omits them keeps the previous
+		// behaviour instead of silently turning every filter off.
+		OnlyWithoutSite *bool `json:"only_without_site"`
+		SkipExisting    *bool `json:"skip_existing"`
+		RequireMobile   *bool `json:"require_mobile"`
+		IncludeBlocked  *bool `json:"include_blocked"`
 	}
 	if err := decode(r, &body); err != nil {
 		writeError(w, r, err)
@@ -88,11 +95,57 @@ func (a *API) searchLeads(w http.ResponseWriter, r *http.Request) {
 			seen[key] = true
 			c.SegmentID = seg.ID.String()
 			c.SegmentName = seg.Name
+
+			if c.Website != "" && boolOr(body.OnlyWithoutSite, true) {
+				continue
+			}
+			if c.ExistingCompany && boolOr(body.SkipExisting, true) {
+				continue
+			}
+			if !c.IsMobile && !c.Invalid && boolOr(body.RequireMobile, false) {
+				continue
+			}
+			if c.IsBlocked && !boolOr(body.IncludeBlocked, false) {
+				continue
+			}
+
 			merged.Results = append(merged.Results, c)
 		}
 	}
 
+	segmentLabel := "Todos os segmentos"
+	var segmentID *uuid.UUID
+	if len(wanted) == 1 && body.SegmentID != "" && body.SegmentID != "all" {
+		segmentLabel = wanted[0].Name
+		id := wanted[0].ID
+		segmentID = &id
+	}
+	if err := a.SearchRuns.Record(r.Context(), postgres.SearchRun{
+		SegmentID: segmentID, SegmentLabel: segmentLabel,
+		City: body.City, State: body.State, LeadsFound: len(merged.Results),
+	}); err != nil {
+		a.Logger.Error("failed to record search run", "error", err)
+	}
+
 	writeJSON(w, http.StatusOK, merged)
+}
+
+func boolOr(v *bool, fallback bool) bool {
+	if v == nil {
+		return fallback
+	}
+	return *v
+}
+
+// recentSearches powers the "Buscas recentes" list: one entry per
+// segment+city pair, newest first, so a search can be repeated in one click.
+func (a *API) recentSearches(w http.ResponseWriter, r *http.Request) {
+	runs, err := a.SearchRuns.Recent(r.Context(), 5)
+	if err != nil {
+		writeError(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"data": runs})
 }
 
 // importSearchResults creates leads for exactly the candidates the user
@@ -170,4 +223,43 @@ func (a *API) searchUsage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, status)
+}
+
+// searchState kicks off a background search across every city it's given —
+// "buscar em todo o estado" — paced so it doesn't blow through the provider
+// quota or hold the request open for what can be a very long run. The city
+// list comes from the client (already fetching IBGE's municipality list for
+// the picker) rather than the backend re-fetching it.
+func (a *API) searchState(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		SegmentID string   `json:"segment_id"`
+		State     string   `json:"state"`
+		Cities    []string `json:"cities"`
+		Limit     int      `json:"limit"`
+	}
+	if err := decode(r, &body); err != nil {
+		writeError(w, r, err)
+		return
+	}
+	queued, err := a.Sourcing.SearchState(r.Context(), body.State, body.Cities, body.SegmentID, body.Limit)
+	if err != nil {
+		writeError(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusAccepted, map[string]any{"queued": queued})
+}
+
+// searchStateProgress is polled while a state-wide search runs so the screen
+// can show which city it's on instead of an unchanging spinner.
+func (a *API) searchStateProgress(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, a.Sourcing.StateSearchStatus())
+}
+
+// cancelSearchState stops the run after its current provider call returns.
+func (a *API) cancelSearchState(w http.ResponseWriter, r *http.Request) {
+	if err := a.Sourcing.CancelStateSearch(); err != nil {
+		writeError(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"status": "cancelling"})
 }

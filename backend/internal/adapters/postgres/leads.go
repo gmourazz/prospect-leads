@@ -57,6 +57,14 @@ func buildFilter(f domain.LeadFilters) (string, []any) {
 		add("is_open_now = $%d", *f.OpenNow)
 	}
 
+	if f.HasEmail != nil {
+		if *f.HasEmail {
+			clauses = append(clauses, "email IS NOT NULL")
+		} else {
+			clauses = append(clauses, "email IS NULL")
+		}
+	}
+
 	switch f.ContactState {
 	case "available":
 		clauses = append(clauses, "is_available")

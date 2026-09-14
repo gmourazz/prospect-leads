@@ -13,8 +13,16 @@ export function EnrichProgressBar({ progress }: { progress: EnrichProgress }) {
 
   const pct = total > 0 ? Math.round((processed / total) * 100) : 0
 
+  const done = !running && total > 0 && emails_found > 0
+
   return (
-    <div className="mb-4 rounded-md border border-border bg-surface px-4 py-3">
+    <div
+      className={
+        done
+          ? 'mb-4 rounded-2xl border border-success/25 bg-success-subtle/40 px-4 py-3'
+          : 'mb-4 rounded-2xl border border-border bg-surface px-4 py-3'
+      }
+    >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="flex items-center gap-2 text-[13px] font-medium">
           {running ? (

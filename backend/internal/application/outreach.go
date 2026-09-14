@@ -3,6 +3,8 @@ package application
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -102,6 +104,12 @@ func (s *OutreachService) CreateCampaign(ctx context.Context, cmd CreateCampaign
 	return s.repo.GetCampaign(ctx, campaignID)
 }
 
+// SentToday backs the "quantos já saíram hoje" reading the settings screen
+// shows next to the daily cap.
+func (s *OutreachService) SentToday(ctx context.Context) (int, error) {
+	return s.repo.CountSentToday(ctx)
+}
+
 func (s *OutreachService) ListCampaigns(ctx context.Context) ([]domain.Campaign, error) {
 	return s.repo.ListCampaigns(ctx)
 }
@@ -112,6 +120,13 @@ func (s *OutreachService) GetCampaign(ctx context.Context, id uuid.UUID) (domain
 
 func (s *OutreachService) DeleteCampaign(ctx context.Context, id uuid.UUID) error {
 	return s.repo.DeleteCampaign(ctx, id)
+}
+
+func (s *OutreachService) SetCampaignStatus(ctx context.Context, id uuid.UUID, status string) error {
+	if status != "active" && status != "paused" && status != "completed" {
+		return domain.Validation("status inválido")
+	}
+	return s.repo.SetCampaignStatus(ctx, id, status)
 }
 
 func (s *OutreachService) ListTargets(ctx context.Context, id uuid.UUID, state string, limit int) ([]domain.CampaignTarget, error) {
@@ -166,6 +181,38 @@ func (s *OutreachService) SendBatch(ctx context.Context, cmd SendBatchCommand) (
 	size := cmd.Size
 	if size <= 0 || size > 50 {
 		size = campaign.BatchSize
+	}
+
+	// 1b. Allowed weekday/hour window still gates the click — there is still
+	//    no scheduler, so a batch requested outside the window is simply
+	//    refused rather than queued for later. Daily volume is no longer
+	//    capped by the app itself (Gmail's own sending limits still apply).
+	rules, err := s.settings.SendRules(ctx)
+	if err != nil {
+		_ = s.idem.Release(ctx, cmd.IdempotencyKey, cmd.Endpoint)
+		return domain.BatchOutcome{}, err
+	}
+	now := time.Now()
+	weekday := int(now.Weekday())
+	if weekday == 0 {
+		weekday = 7 // ISO: segunda=1 .. domingo=7
+	}
+	allowedDay := false
+	for _, d := range rules.Weekdays {
+		if int(d) == weekday {
+			allowedDay = true
+			break
+		}
+	}
+	if !allowedDay {
+		_ = s.idem.Release(ctx, cmd.IdempotencyKey, cmd.Endpoint)
+		return domain.BatchOutcome{}, domain.New(domain.CodeSendWindowClosed,
+			"hoje não está nos dias configurados para envio")
+	}
+	if now.Hour() < rules.HourStart || now.Hour() >= rules.HourEnd {
+		_ = s.idem.Release(ctx, cmd.IdempotencyKey, cmd.Endpoint)
+		return domain.BatchOutcome{}, domain.New(domain.CodeSendWindowClosed,
+			fmt.Sprintf("fora do horário de envio (%02dh–%02dh)", rules.HourStart, rules.HourEnd))
 	}
 
 	// 2. Short transaction: create the batch and reserve the targets. The
@@ -283,6 +330,15 @@ func (s *OutreachService) SendBatch(ctx context.Context, cmd SendBatchCommand) (
 	progress, err := s.repo.Progress(ctx, cmd.CampaignID)
 	if err != nil {
 		return domain.BatchOutcome{}, err
+	}
+
+	// Nothing left to send: the campaign closes itself instead of sitting
+	// "active" forever with an empty queue. A manual pause/resume can still
+	// override this afterward.
+	if progress.Pending == 0 {
+		if err := s.repo.SetCampaignStatus(ctx, cmd.CampaignID, "completed"); err != nil {
+			logger.Error("could not auto-complete campaign", "error", err)
+		}
 	}
 
 	outcome := domain.BatchOutcome{Batch: finished, Results: results, CampaignProgress: progress}

@@ -15,7 +15,28 @@ export interface SearchCandidate {
   opening_hours: string
   already_contacted: boolean
   existing_company: boolean
+  is_mobile: boolean
+  is_blocked: boolean
   invalid: boolean
+}
+
+/** The four toggles on the search form. Sent on every search, so what the
+ * screen shows is always what the provider result was filtered by. */
+export interface SearchFilters {
+  only_without_site: boolean
+  skip_existing: boolean
+  require_mobile: boolean
+  include_blocked: boolean
+}
+
+export interface SearchRun {
+  id: string
+  segment_id: string | null
+  segment_label: string
+  city: string
+  state: string
+  leads_found: number
+  created_at: string
 }
 
 export interface SearchOutcome {
@@ -34,8 +55,11 @@ export interface ImportSelectedResult {
 export const sourcingApi = {
   usage: () => http.get<UsageStatus>('/searches/usage'),
 
-  search: (body: { segment_id: string; city: string; state: string; limit?: number }) =>
-    http.post<SearchOutcome>('/searches', body),
+  search: (
+    body: { segment_id: string; city: string; state: string; limit?: number } & Partial<SearchFilters>,
+  ) => http.post<SearchOutcome>('/searches', body),
+
+  recent: () => http.get<{ data: SearchRun[] }>('/searches/recent'),
 
   importSelected: (body: { segment_id?: string; provider: string; candidates: SearchCandidate[] }) =>
     http.post<ImportSelectedResult>('/searches/import', {
@@ -52,6 +76,13 @@ export const sourcingApi = {
         opening_hours: c.opening_hours,
       })),
     }),
+
+  searchState: (body: { segment_id: string; state: string; cities: string[]; limit?: number }) =>
+    http.post<{ queued: number }>('/searches/state', body),
+
+  stateSearchProgress: () => http.get<StateSearchProgress>('/searches/state/progress'),
+
+  cancelStateSearch: () => http.post<{ status: string }>('/searches/state/cancel', {}),
 }
 
 export interface UsageStatus {
@@ -60,4 +91,16 @@ export interface UsageStatus {
   call_count: number
   free_quota: number
   is_billed: boolean
+}
+
+export interface StateSearchProgress {
+  running: boolean
+  state: string
+  total_cities: number
+  processed_cities: number
+  current_city: string
+  leads_found: number
+  cancelled: boolean
+  started_at?: string
+  finished_at?: string
 }

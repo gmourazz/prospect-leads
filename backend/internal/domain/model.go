@@ -126,6 +126,10 @@ type LeadFilters struct {
 	// only currently-open businesses, false only currently-closed ones.
 	// Leads with unknown hours match neither.
 	OpenNow *bool
+	// HasEmail filters by whether the contact point has an email on file:
+	// nil means no filter, true only leads with an email, false only
+	// leads still missing one.
+	HasEmail *bool
 }
 
 type ContactEvent struct {
@@ -145,7 +149,14 @@ type Template struct {
 	SegmentName *string    `json:"segment_name"`
 	// Audience says who the pitch is written for: no_website (I can build
 	// you one), has_website (I can improve yours) or any.
-	Audience  string          `json:"audience"`
+	Audience string `json:"audience"`
+	// Channel is purely organizational (email vs whatsapp) — there is still
+	// only one automated send gateway (email); a "whatsapp" template is
+	// meant to be copied or hand-sent, same as the manual followup step.
+	Channel string `json:"channel"`
+	// Purpose says WHEN in the relationship this template fits: the cold
+	// first touch, or a remarketing nudge to someone contacted before.
+	Purpose   string          `json:"purpose"`
 	IsActive  bool            `json:"is_active"`
 	VersionID *uuid.UUID      `json:"version_id"`
 	Version   int             `json:"version"`

@@ -16,12 +16,21 @@ export function ContactStatusBadge({ contact }: { contact: ContactState }) {
 
   const hasHistory = contact.contact_count > 0 || contact.is_suppressed
 
-  const badge = (
-    <Badge variant={spec.tone === 'neutral' ? 'neutral' : spec.tone}>
-      <Icon />
-      {spec.label}
-    </Badge>
-  )
+  // "Disponível" gets the brand tint (it's the actionable state — this
+  // contact can be added to a campaign right now) while every other neutral
+  // state (no contact yet, etc.) stays plain gray.
+  const badge =
+    spec.label === 'Disponível' ? (
+      <Badge className="border-transparent bg-accent text-accent-foreground">
+        <Icon />
+        {spec.label}
+      </Badge>
+    ) : (
+      <Badge variant={spec.tone === 'neutral' ? 'neutral' : spec.tone}>
+        <Icon />
+        {spec.label}
+      </Badge>
+    )
 
   if (!hasHistory) return badge
 

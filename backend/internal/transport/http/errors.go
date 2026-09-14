@@ -47,6 +47,8 @@ func statusFor(code domain.Code) (int, string) {
 		return http.StatusBadGateway, "Serviço de envio indisponível"
 	case domain.CodeConflict:
 		return http.StatusConflict, "Conflito"
+	case domain.CodeSendWindowClosed:
+		return http.StatusUnprocessableEntity, "Fora da janela de envio"
 	case domain.CodeUnauthorized:
 		return http.StatusUnauthorized, "Não autenticado"
 	default:

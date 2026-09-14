@@ -110,6 +110,20 @@ func (r *OutreachRepo) Progress(ctx context.Context, campaignID uuid.UUID) (doma
 	return p, rows.Err()
 }
 
+// CountSentToday backs the daily send cap: it counts across every campaign,
+// not just the one being sent, because the limit protects the sender
+// reputation as a whole, not one campaign's quota.
+func (r *OutreachRepo) CountSentToday(ctx context.Context) (int, error) {
+	var n int
+	err := r.DB(ctx).QueryRow(ctx, `
+		SELECT COUNT(*) FROM message_dispatches
+		 WHERE status = 'sent' AND sent_at >= date_trunc('day', now())`).Scan(&n)
+	if err != nil {
+		return 0, TranslateError(err)
+	}
+	return n, nil
+}
+
 func (r *OutreachRepo) ListCampaigns(ctx context.Context) ([]domain.Campaign, error) {
 	rows, err := r.DB(ctx).Query(ctx, `
 		SELECT c.id, c.name, c.status, c.template_version_id,
@@ -438,6 +452,21 @@ func (r *OutreachRepo) ListBatches(ctx context.Context, campaignID uuid.UUID) ([
 		out = append(out, b)
 	}
 	return out, rows.Err()
+}
+
+// SetCampaignStatus pauses or resumes a campaign. Pausing changes nothing
+// about what was already sent — it only stops the campaign from showing up
+// as a place to send the next batch from.
+func (r *OutreachRepo) SetCampaignStatus(ctx context.Context, id uuid.UUID, status string) error {
+	tag, err := r.DB(ctx).Exec(ctx,
+		`UPDATE campaigns SET status = $2, updated_at = now() WHERE id = $1`, id, status)
+	if err != nil {
+		return TranslateError(err)
+	}
+	if tag.RowsAffected() == 0 {
+		return domain.NotFound("campanha")
+	}
+	return nil
 }
 
 // DeleteCampaign removes a campaign and its target list. The dispatches and

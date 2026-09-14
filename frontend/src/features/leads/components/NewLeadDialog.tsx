@@ -1,5 +1,15 @@
 import { useState, type FormEvent } from 'react'
 import {
+  type LucideIcon,
+  Building2,
+  Mail,
+  MapPin,
+  Phone,
+  Plus,
+  Tags,
+  UserPlus,
+} from 'lucide-react'
+import {
   Dialog,
   DialogContent,
   DialogFooter,
@@ -19,7 +29,7 @@ export function NewLeadDialog({ open, onOpenChange }: { open: boolean; onOpenCha
   const { data: segments } = useSegments()
   const createLead = useCreateLead()
   const [form, setForm] = useState({
-    company_name: '', phone: '', email: '', city: '', state: '', segment_id: '', website: '', instagram: '',
+    company_name: '', phone: '', email: '', city: '', state: '', segment_id: '', website: '',
   })
 
   function set<K extends keyof typeof form>(key: K, value: string) {
@@ -33,7 +43,7 @@ export function NewLeadDialog({ open, onOpenChange }: { open: boolean; onOpenCha
       {
         onSuccess: () => {
           onOpenChange(false)
-          setForm({ company_name: '', phone: '', email: '', city: '', state: '', segment_id: '', website: '', instagram: '' })
+          setForm({ company_name: '', phone: '', email: '', city: '', state: '', segment_id: '', website: '' })
         },
       },
     )
@@ -44,11 +54,14 @@ export function NewLeadDialog({ open, onOpenChange }: { open: boolean; onOpenCha
       <DialogContent className="max-w-lg">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Novo lead</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="size-4 text-primary" />
+              Novo lead
+            </DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-4 px-6 pb-2">
             <div className="col-span-2 space-y-1.5">
-              <Label>Nome da empresa *</Label>
+              <FieldLabel icon={Building2}>Nome da empresa *</FieldLabel>
               <Input
                 required
                 value={form.company_name}
@@ -57,7 +70,7 @@ export function NewLeadDialog({ open, onOpenChange }: { open: boolean; onOpenCha
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Telefone</Label>
+              <FieldLabel icon={Phone}>Telefone</FieldLabel>
               <Input
                 value={form.phone}
                 onChange={(e) => set('phone', e.target.value)}
@@ -65,7 +78,7 @@ export function NewLeadDialog({ open, onOpenChange }: { open: boolean; onOpenCha
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Email</Label>
+              <FieldLabel icon={Mail}>Email</FieldLabel>
               <Input
                 type="email"
                 value={form.email}
@@ -73,48 +86,54 @@ export function NewLeadDialog({ open, onOpenChange }: { open: boolean; onOpenCha
                 placeholder="contato@empresa.com"
               />
             </div>
-            <div className="space-y-1.5">
-              <Label>Segmento</Label>
-              <Select value={form.segment_id || NONE} onValueChange={(v) => set('segment_id', v === NONE ? '' : v)}>
-                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={NONE}>Nenhum</SelectItem>
-                  {segments?.data.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Cidade</Label>
-              <Input value={form.city} onChange={(e) => set('city', e.target.value)} placeholder="Uberlândia" />
-            </div>
-            <div className="space-y-1.5">
-              <Label>UF</Label>
-              <Input
-                maxLength={2}
-                value={form.state}
-                onChange={(e) => set('state', e.target.value.toUpperCase())}
-                placeholder="MG"
-              />
-            </div>
-            <div className="col-span-2 space-y-1.5">
-              <Label>Instagram</Label>
-              <Input
-                value={form.instagram}
-                onChange={(e) => set('instagram', e.target.value)}
-                placeholder="https://instagram.com/…"
-              />
+            <div className="col-span-2 grid grid-cols-[1.4fr_1fr_0.6fr] gap-4">
+              <div className="space-y-1.5">
+                <FieldLabel icon={Tags}>Segmento</FieldLabel>
+                <Select value={form.segment_id || NONE} onValueChange={(v) => set('segment_id', v === NONE ? '' : v)}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NONE}>Nenhum</SelectItem>
+                    {segments?.data.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <FieldLabel icon={MapPin}>Cidade</FieldLabel>
+                <Input value={form.city} onChange={(e) => set('city', e.target.value)} placeholder="Uberlândia" />
+              </div>
+              <div className="space-y-1.5">
+                <FieldLabel icon={MapPin}>UF</FieldLabel>
+                <Input
+                  maxLength={2}
+                  value={form.state}
+                  onChange={(e) => set('state', e.target.value.toUpperCase())}
+                  placeholder="MG"
+                />
+              </div>
             </div>
           </div>
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button type="submit" loading={createLead.isPending}>Criar lead</Button>
+            <Button type="submit" loading={createLead.isPending}>
+              <Plus />
+              Criar lead
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
+  )
+}
+
+function FieldLabel({ icon: Icon, children }: { icon: LucideIcon; children: React.ReactNode }) {
+  return (
+    <Label className="flex items-center gap-1.5">
+      <Icon className="size-3.5 text-muted-foreground" />
+      {children}
+    </Label>
   )
 }

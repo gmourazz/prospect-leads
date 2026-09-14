@@ -1,80 +1,102 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&family=JetBrains+Mono:wght@500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /* Tokens live here from day one so dark mode is a token swap, not a hunt
-   through components for hardcoded colors. Purple/violet is the brand hue. */
+   through components for hardcoded colors. Purple/violet is the brand hue.
+   Dark is the default look (:root) — the login screen and anything that
+   renders before the Topbar mounts always gets it. `[data-theme='light']`
+   overrides it once the user opts in from the Topbar toggle; the choice is
+   persisted in localStorage by Topbar.tsx. */
 @layer base {
   :root {
-    --background: 262 40% 99%;
+    --background: 249 28% 5%;
+    --surface: 255 24% 7%;
+    --foreground: 257 30% 95%;
+
+    --muted: 262 19% 8%;
+    --muted-foreground: 253 11% 58%;
+
+    --border: 254 19% 13%;
+    --input: 258 22% 15%;
+    --ring: 258 90% 66%;
+
+    --primary: 258 90% 66%;
+    --primary-foreground: 0 0% 100%;
+
+    --accent: 258 22% 18%;
+    --accent-foreground: 252 95% 85%;
+
+    --success: 158 64% 52%;
+    --success-foreground: 249 28% 5%;
+    --success-subtle: 158 50% 14%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 249 28% 5%;
+    --warning-subtle: 36 55% 15%;
+
+    --danger: 0 91% 71%;
+    --danger-foreground: 249 28% 5%;
+    --danger-subtle: 0 40% 18%;
+
+    --info: 213 94% 68%;
+    --info-subtle: 213 55% 17%;
+
+    --shadow: 0 0% 0%;
+    --radius: 0.75rem;
+  }
+
+  [data-theme='light'] {
+    --background: 260 33% 96%;
     --surface: 0 0% 100%;
-    --foreground: 262 25% 11%;
+    --foreground: 255 33% 16%;
 
-    --muted: 262 30% 96%;
-    --muted-foreground: 262 12% 46%;
+    --muted: 256 52% 96%;
+    --muted-foreground: 255 22% 33%;
 
-    --border: 262 20% 90%;
-    --input: 262 20% 90%;
+    --border: 258 36% 91%;
+    --input: 256 52% 96%;
     --ring: 262 83% 58%;
 
     --primary: 262 83% 58%;
     --primary-foreground: 0 0% 100%;
 
-    --accent: 262 60% 96%;
-    --accent-foreground: 262 83% 34%;
+    --accent: 258 60% 95%;
+    --accent-foreground: 263 69% 42%;
 
-    --success: 152 60% 36%;
+    --success: 163 94% 24%;
     --success-foreground: 0 0% 100%;
-    --success-subtle: 152 55% 95%;
+    --success-subtle: 163 55% 93%;
 
-    --warning: 36 92% 42%;
+    --warning: 26 90% 37%;
     --warning-foreground: 0 0% 100%;
-    --warning-subtle: 40 96% 94%;
+    --warning-subtle: 26 85% 92%;
 
-    --danger: 336 78% 52%;
+    --danger: 0 74% 42%;
     --danger-foreground: 0 0% 100%;
-    --danger-subtle: 336 80% 96%;
+    --danger-subtle: 0 70% 94%;
 
-    --info: 221 76% 52%;
-    --info-subtle: 214 95% 95%;
+    --info: 224 76% 48%;
+    --info-subtle: 224 75% 93%;
 
-    --shadow: 262 30% 20%;
-    --radius: 0.625rem;
+    --shadow: 258 36% 40%;
   }
 
-  [data-theme='dark'] {
-    --background: 263 32% 7%;
-    --surface: 262 26% 10%;
-    --foreground: 262 20% 96%;
-
-    --muted: 262 18% 15%;
-    --muted-foreground: 262 10% 65%;
-
-    --border: 262 16% 19%;
-    --input: 262 16% 19%;
-    --ring: 262 90% 70%;
-
-    --primary: 262 90% 70%;
-    --primary-foreground: 262 30% 9%;
-
-    --accent: 262 20% 16%;
-    --accent-foreground: 262 90% 88%;
-
-    --success: 152 55% 48%;
-    --success-subtle: 152 40% 14%;
-
-    --warning: 38 90% 55%;
-    --warning-subtle: 36 50% 15%;
-
-    --danger: 336 82% 62%;
-    --danger-subtle: 336 55% 16%;
-
-    --info: 217 84% 62%;
-    --info-subtle: 220 50% 17%;
-
-    --shadow: 0 0% 0%;
+  /* Sidebar keeps the brand-dark look in both themes — pinning the tokens
+     here (rather than hardcoding colors in Sidebar.tsx) means every
+     bg-surface/text-foreground/etc class inside it keeps working, it just
+     resolves against this scope instead of the page-level theme. */
+  .sidebar-dark {
+    --background: 249 28% 5%;
+    --surface: 255 24% 7%;
+    --foreground: 257 30% 95%;
+    --muted: 262 19% 8%;
+    --muted-foreground: 253 11% 58%;
+    --border: 254 19% 13%;
+    --accent: 258 22% 18%;
+    --accent-foreground: 252 95% 85%;
   }
 
   * {
@@ -82,7 +104,7 @@
   }
 
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply bg-background text-foreground antialiased font-sans;
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
     background-image: radial-gradient(circle at 12% -8%, hsl(var(--primary) / 0.10), transparent 42%);
     background-attachment: fixed;
@@ -131,10 +153,10 @@
     background: transparent;
   }
   .glow-primary {
-    box-shadow: 0 0 0 1px hsl(var(--primary) / 0.25), 0 8px 24px -8px hsl(var(--primary) / 0.55);
+    box-shadow: 0 6px 18px -8px rgba(139, 92, 246, 0.9);
   }
   .gradient-brand {
-    background-image: linear-gradient(135deg, hsl(262 83% 58%), hsl(292 75% 58%));
+    background-image: linear-gradient(150deg, #8b5cf6, #6d28d9);
   }
 
   /* Login/auth backdrop: layered aurora blobs + a faint tech grid. Every
@@ -170,11 +192,11 @@
     position: absolute;
     border-radius: 9999px;
     filter: blur(90px);
-    opacity: 0.4;
+    opacity: 0.3;
     will-change: transform;
   }
-  [data-theme='dark'] .auth-blob {
-    opacity: 0.3;
+  [data-theme='light'] .auth-blob {
+    opacity: 0.4;
   }
   .auth-blob-1 {
     top: -12%;

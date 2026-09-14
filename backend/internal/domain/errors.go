@@ -19,6 +19,7 @@ const (
 	CodeConflict            Code = "conflict"
 	CodeUnauthorized        Code = "unauthorized"
 	CodeInternal            Code = "internal_error"
+	CodeSendWindowClosed    Code = "send_window_closed"
 )
 
 // Error is the single error type crossing layer boundaries. Transport maps

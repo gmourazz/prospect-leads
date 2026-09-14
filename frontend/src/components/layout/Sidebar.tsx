@@ -4,7 +4,6 @@ import {
   FileSpreadsheet,
   Clock,
   LayoutDashboard,
-  Mail,
   MessageSquareText,
   Search,
   Send,
@@ -37,46 +36,39 @@ export function Sidebar() {
   const connected = Boolean(settings?.sender_email)
 
   return (
-    <aside className="hidden w-[236px] shrink-0 flex-col border-r border-border bg-surface md:flex">
-      <div className="flex h-14 items-center gap-2.5 px-5">
-        <div className="flex size-7 items-center justify-center rounded-md gradient-brand glow-primary">
-          <BarChart3 className="size-4 text-white" />
+    <aside className="hidden w-[250px] shrink-0 flex-col border-r border-border bg-surface md:flex">
+      <div className="flex items-center gap-2.5 px-5 py-5">
+        <div className="flex size-9 shrink-0 items-center justify-center rounded-[11px] gradient-brand glow-primary">
+          <BarChart3 className="size-[18px] text-white" />
         </div>
-        <div className="leading-tight">
-          <p className="text-[13px] font-semibold tracking-tight">Prospect</p>
-          <p className="text-[11px] text-muted-foreground">Prospecção comercial</p>
+        <div className="min-w-0 leading-tight">
+          <p className="truncate text-[15.5px] font-bold tracking-tight">Prospect</p>
+          <p className="truncate text-[12px] text-muted-foreground">Prospecção comercial</p>
         </div>
       </div>
 
-      <nav className="flex flex-1 flex-col gap-6 px-3 py-4">
-        <div className="flex flex-col gap-0.5">
-          {NAV.map((item) => (
-            <NavItem key={item.to} {...item} />
-          ))}
-        </div>
+      <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-3 scrollbar-thin">
+        {NAV.map((item) => (
+          <NavItem key={item.to} {...item} />
+        ))}
 
-        <div className="flex flex-col gap-0.5">
-          <p className="px-3 pb-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-            Configuração
-          </p>
-          {NAV_SECONDARY.map((item) => (
-            <NavItem key={item.to} {...item} />
-          ))}
-        </div>
+        <p className="px-3 pb-1.5 pt-5 text-[11px] font-extrabold uppercase tracking-[0.1em] text-muted-foreground">
+          Configuração
+        </p>
+        {NAV_SECONDARY.map((item) => (
+          <NavItem key={item.to} {...item} />
+        ))}
       </nav>
 
-      <div className="border-t border-border p-3">
-        <div className="rounded-md bg-muted/60 px-3 py-2.5">
-          <p className="flex items-center gap-1.5 text-[11px] font-medium text-foreground">
-            <Mail className={cn('size-3.5', connected ? 'text-success' : 'text-muted-foreground')} />
-            {settings?.sender_email || 'Carregando…'}
-          </p>
-          <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
-            {connected
-              ? 'Conectado — emails saem de verdade por este endereço.'
-              : 'Não conectado — defina GMAIL_ADDRESS e GMAIL_APP_PASSWORD no backend.'}
-          </p>
-        </div>
+      <div className="border-t border-border px-5 py-4">
+        <p className={cn('truncate text-[13px] font-semibold', connected ? 'text-foreground' : 'text-muted-foreground')}>
+          {settings?.sender_email || 'Carregando…'}
+        </p>
+        <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground">
+          {connected
+            ? 'Conectado — emails saem de verdade por este endereço.'
+            : 'Não conectado — defina GMAIL_ADDRESS e GMAIL_APP_PASSWORD no backend.'}
+        </p>
       </div>
     </aside>
   )
@@ -99,15 +91,15 @@ function NavItem({
       end={end}
       className={({ isActive }) =>
         cn(
-          'flex items-center gap-2.5 rounded-md px-3 py-2 text-[13px] font-medium transition-colors',
+          'flex items-center gap-2.5 rounded-[11px] border px-3 py-2.5 text-[14px] font-medium transition-colors',
           isActive
-            ? 'bg-accent text-accent-foreground'
-            : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
+            ? 'border-primary/30 bg-primary/[0.14] text-primary'
+            : 'border-transparent text-muted-foreground hover:bg-muted/60 hover:text-foreground',
         )
       }
     >
-      <Icon className="size-4 shrink-0" />
-      {label}
+      <Icon className="size-[18px] shrink-0" />
+      <span className="min-w-0 flex-1 truncate">{label}</span>
     </NavLink>
   )
 }

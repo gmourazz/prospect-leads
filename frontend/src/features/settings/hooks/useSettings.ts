@@ -18,7 +18,7 @@ export function useUpdateSettings() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['settings'] })
       queryClient.invalidateQueries({ queryKey: ['campaigns'] })
-      toast.success('Assinatura salva')
+      toast.success('Configurações salvas')
     },
     onError: (error) =>
       toast.error(error instanceof ApiError ? error.userMessage : 'Algo deu errado.'),

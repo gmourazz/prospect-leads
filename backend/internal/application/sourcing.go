@@ -24,6 +24,12 @@ import (
 // happens, not to enforce anything.
 const googleFreeMonthlyCalls = 5000
 
+// stateSearchPace is the gap between provider calls in a state-wide search.
+// Deliberately gentle: hundreds of cities means hundreds (or, with several
+// segments, thousands) of calls, and nothing about a background job needs
+// them to fire as fast as the provider allows.
+const stateSearchPace = 1500 * time.Millisecond
+
 type SourcingService struct {
 	store     *postgres.Store
 	companies *postgres.CompanyRepo
@@ -44,6 +50,14 @@ type SourcingService struct {
 	// stares at an unchanged list wondering if anything is happening.
 	progressMu sync.RWMutex
 	progress   EnrichmentProgress
+
+	// Same idea for a state-wide search: it can walk hundreds of cities, so
+	// it runs in the background, paced, with a cancel switch. Only one at a
+	// time — nothing gained from racing two against the same provider.
+	stateSearching  sync.Mutex
+	stateProgressMu sync.RWMutex
+	stateProgress   StateSearchProgress
+	stateCancel     context.CancelFunc
 }
 
 // EnrichmentProgress is the live state of the current (or last) discovery
@@ -57,6 +71,193 @@ type EnrichmentProgress struct {
 	EmailsFound int    `json:"emails_found"`
 	StartedAt   string `json:"started_at,omitempty"`
 	FinishedAt  string `json:"finished_at,omitempty"`
+}
+
+// StateSearchProgress is the live state of the current (or last) state-wide
+// search, shaped for the screen that polls it.
+type StateSearchProgress struct {
+	Running         bool   `json:"running"`
+	State           string `json:"state"`
+	TotalCities     int    `json:"total_cities"`
+	ProcessedCities int    `json:"processed_cities"`
+	CurrentCity     string `json:"current_city"`
+	LeadsFound      int    `json:"leads_found"`
+	Cancelled       bool   `json:"cancelled"`
+	StartedAt       string `json:"started_at,omitempty"`
+	FinishedAt      string `json:"finished_at,omitempty"`
+}
+
+// StateSearchStatus reports how far the background state-wide search got.
+func (s *SourcingService) StateSearchStatus() StateSearchProgress {
+	s.stateProgressMu.RLock()
+	defer s.stateProgressMu.RUnlock()
+	return s.stateProgress
+}
+
+// CancelStateSearch stops the run after its current provider call returns —
+// there's no way to interrupt an in-flight HTTP request to the provider, so
+// "cancelled" means "stops picking up new cities," not "stops instantly."
+func (s *SourcingService) CancelStateSearch() error {
+	s.stateProgressMu.Lock()
+	defer s.stateProgressMu.Unlock()
+	if s.stateCancel == nil {
+		return domain.NotFound("busca por estado em andamento")
+	}
+	s.stateCancel()
+	return nil
+}
+
+// SearchState walks every city it's given, one at a time, searching the
+// wanted segment(s) in each and auto-importing whatever comes back — the
+// same "results land straight in Leads" behavior as a single-city search,
+// just paced across a background run instead of one request. Returns the
+// number of cities queued; the run itself continues after this returns.
+func (s *SourcingService) SearchState(ctx context.Context, state string, cities []string, segmentID string, limit int) (int, error) {
+	if state == "" {
+		return 0, domain.Validation("estado é obrigatório")
+	}
+	if len(cities) == 0 {
+		return 0, domain.Validation("nenhuma cidade informada")
+	}
+	if !s.stateSearching.TryLock() {
+		return 0, domain.New(domain.CodeConflict, "já existe uma busca por estado em andamento")
+	}
+
+	segments, err := s.segments.List(ctx)
+	if err != nil {
+		s.stateSearching.Unlock()
+		return 0, err
+	}
+	var wanted []domain.Segment
+	if segmentID == "" || segmentID == "all" {
+		for _, seg := range segments {
+			if seg.IsActive {
+				wanted = append(wanted, seg)
+			}
+		}
+	} else {
+		id, err := uuid.Parse(segmentID)
+		if err != nil {
+			s.stateSearching.Unlock()
+			return 0, domain.Validation("segment_id inválido")
+		}
+		for _, seg := range segments {
+			if seg.ID == id {
+				wanted = append(wanted, seg)
+			}
+		}
+	}
+	if len(wanted) == 0 {
+		s.stateSearching.Unlock()
+		return 0, domain.NotFound("segmento")
+	}
+
+	bg, cancel := context.WithCancel(context.Background())
+	s.stateProgressMu.Lock()
+	s.stateCancel = cancel
+	s.stateProgress = StateSearchProgress{
+		Running: true, State: state, TotalCities: len(cities),
+		StartedAt: time.Now().Format(time.RFC3339),
+	}
+	s.stateProgressMu.Unlock()
+
+	logger := observability.FromContext(ctx)
+	go s.runStateSearch(bg, logger, state, cities, wanted, limit)
+	return len(cities), nil
+}
+
+func (s *SourcingService) runStateSearch(
+	ctx context.Context, logger *slog.Logger, state string, cities []string, segments []domain.Segment, limit int,
+) {
+	defer s.stateSearching.Unlock()
+	defer func() {
+		s.stateProgressMu.Lock()
+		s.stateProgress.Running = false
+		s.stateProgress.FinishedAt = time.Now().Format(time.RFC3339)
+		s.stateCancel = nil
+		s.stateProgressMu.Unlock()
+	}()
+
+	for i, city := range cities {
+		if ctx.Err() != nil {
+			s.stateProgressMu.Lock()
+			s.stateProgress.Cancelled = true
+			s.stateProgressMu.Unlock()
+			return
+		}
+
+		s.stateProgressMu.Lock()
+		s.stateProgress.CurrentCity = city
+		s.stateProgressMu.Unlock()
+
+		merged := SearchOutcome{}
+		seen := map[string]bool{}
+		for _, seg := range segments {
+			outcome, err := s.Search(ctx, seg.Slug, seg.Name, city, state, limit)
+			if err != nil {
+				logger.Error("state search: segment failed", "segment", seg.Name, "city", city, "error", err)
+			} else {
+				merged.Provider = outcome.Provider
+				for _, c := range outcome.Results {
+					key := c.ExternalID
+					if key == "" {
+						key = c.CompanyName + "|" + c.PhoneDisplay
+					}
+					if seen[key] {
+						continue
+					}
+					seen[key] = true
+					c.SegmentID = seg.ID.String()
+					c.SegmentName = seg.Name
+					merged.Results = append(merged.Results, c)
+				}
+			}
+
+			select {
+			case <-ctx.Done():
+				s.stateProgressMu.Lock()
+				s.stateProgress.Cancelled = true
+				s.stateProgressMu.Unlock()
+				return
+			case <-time.After(stateSearchPace):
+			}
+		}
+
+		var candidates []SearchCandidateInput
+		for _, c := range merged.Results {
+			if c.Invalid {
+				continue
+			}
+			var segID *uuid.UUID
+			if c.SegmentID != "" {
+				if id, err := uuid.Parse(c.SegmentID); err == nil {
+					segID = &id
+				}
+			}
+			candidates = append(candidates, SearchCandidateInput{
+				SegmentID: segID, CompanyName: c.CompanyName, Phone: c.PhoneDisplay,
+				City: c.City, State: c.State, Website: c.Website, Email: c.Email,
+				OpeningHours: c.OpeningHours,
+			})
+		}
+		if len(candidates) > 0 {
+			result, err := s.ImportSelected(ctx, ImportSelectedCommand{Provider: merged.Provider, Candidates: candidates})
+			if err != nil {
+				logger.Error("state search: import failed", "city", city, "error", err)
+			} else {
+				s.stateProgressMu.Lock()
+				s.stateProgress.LeadsFound += result.Created + result.Merged
+				s.stateProgressMu.Unlock()
+			}
+		}
+
+		s.stateProgressMu.Lock()
+		s.stateProgress.ProcessedCities = i + 1
+		s.stateProgressMu.Unlock()
+	}
+
+	logger.Info("state search finished", "action", "sourcing.state_search.done",
+		"state", state, "cities", len(cities), "leads_found", s.StateSearchStatus().LeadsFound)
 }
 
 // EnrichmentStatus reports how far the background discovery got.
@@ -131,6 +332,8 @@ type SearchCandidate struct {
 	OpeningHours     string `json:"opening_hours"`
 	AlreadyContacted bool   `json:"already_contacted"`
 	ExistingCompany  bool   `json:"existing_company"`
+	IsMobile         bool   `json:"is_mobile"`
+	IsBlocked        bool   `json:"is_blocked"`
 	Invalid          bool   `json:"invalid"`
 }
 
@@ -176,10 +379,14 @@ func (s *SourcingService) Search(ctx context.Context, segmentSlug, segmentName, 
 			continue
 		}
 		candidate.PhoneDisplay = n.Display()
+		candidate.IsMobile = n.IsMobile()
 
 		if id, found, err := s.contacts.Resolve(ctx, n); err == nil && found {
 			if contacted, err := s.contacts.HasBeenContacted(ctx, id); err == nil {
 				candidate.AlreadyContacted = contacted
+			}
+			if state, err := s.contacts.State(ctx, id); err == nil {
+				candidate.IsBlocked = state.IsSuppressed
 			}
 		}
 

@@ -13,6 +13,7 @@ const KEYS = [
   'sort',
   'page',
   'open_now',
+  'has_email',
   'limit',
 ] as const
 

@@ -55,6 +55,7 @@ func main() {
 	idempotency := postgres.NewIdempotencyRepo(store)
 	users := postgres.NewUserRepo(store)
 	searchUsage := postgres.NewSearchUsageRepo(store)
+	searchRuns := postgres.NewSearchRunRepo(store)
 	attachmentRepo := postgres.NewAttachmentRepo(store)
 	settingsRepo := postgres.NewSettingsRepo(store)
 
@@ -101,6 +102,7 @@ func main() {
 		Sourcing:    application.NewSourcingService(store, companies, contacts, segments, leads, searchUsage, leadProvider, emailFinder),
 		Users:       users,
 		Attachments: attachmentRepo,
+		SearchRuns:  searchRuns,
 		Settings:    settingsRepo,
 		Logger:      logger,
 		CORS:        cfg.CORSOrigin,

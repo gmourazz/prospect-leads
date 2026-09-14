@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Clock, MessageCircle, ThumbsUp } from 'lucide-react'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { EmptyState } from '@/components/common/EmptyState'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -9,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { FollowupDialog } from '@/features/followup/components/FollowupDialog'
 import { useAwaitingReply, useMarkReplied } from '@/features/followup/hooks/useFollowup'
 import { formatNumber } from '@/lib/format'
+import { cn } from '@/lib/cn'
 import type { AwaitingReply } from '@/features/followup/api/followup.api'
 
 const DAY_OPTIONS = [
@@ -17,6 +17,27 @@ const DAY_OPTIONS = [
   { value: '7', label: 'há mais de 7 dias' },
   { value: '14', label: 'há mais de 14 dias' },
 ]
+
+const STEPS = [
+  {
+    number: 1,
+    tone: 'bg-primary/10 text-primary',
+    title: 'Email sai da campanha',
+    description: 'O lead entra em espera assim que o envio é confirmado.',
+  },
+  {
+    number: 2,
+    tone: 'bg-warning-subtle text-warning',
+    title: 'Silêncio pelo período escolhido',
+    description: 'Sem resposta na janela escolhida, ele aparece nesta lista.',
+  },
+  {
+    number: 3,
+    tone: 'bg-success-subtle text-success',
+    title: 'Follow-up no WhatsApp',
+    description: 'Você abre a conversa com a mensagem já preenchida.',
+  },
+] as const
 
 export function AwaitingReplyPage() {
   const [minDays, setMinDays] = useState('3')
@@ -44,16 +65,42 @@ export function AwaitingReplyPage() {
         }
       />
 
+      <div className="mb-4 grid grid-cols-1 gap-3.5 sm:grid-cols-3">
+        {STEPS.map((step) => (
+          <div key={step.number} className="rounded-2xl border border-border bg-surface p-5">
+            <div className="flex items-center gap-2.5">
+              <span
+                className={cn(
+                  'flex size-6 shrink-0 items-center justify-center rounded-full text-[12px] font-semibold',
+                  step.tone,
+                )}
+              >
+                {step.number}
+              </span>
+              <p className="text-[13.5px] font-semibold">{step.title}</p>
+            </div>
+            <p className="mt-2 text-[12.5px] leading-relaxed text-muted-foreground">{step.description}</p>
+          </div>
+        ))}
+      </div>
+
       {isLoading ? (
         <div className="space-y-2">
           {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-14 w-full" />)}
         </div>
       ) : rows.length === 0 ? (
-        <EmptyState
-          icon={Clock}
-          title="Ninguém aguardando ainda"
-          description="Assim que uma campanha de email for enviada, quem não responder aparece aqui para o follow-up."
-        />
+        <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border px-6 py-20 text-center">
+          <div className="flex size-11 items-center justify-center rounded-[10px] bg-primary/10">
+            <Clock className="size-5 text-primary" />
+          </div>
+          <div className="space-y-1">
+            <p className="text-sm font-semibold">Ninguém aguardando ainda</p>
+            <p className="mx-auto max-w-sm text-[13px] leading-relaxed text-muted-foreground">
+              Os follow-ups aparecem aqui a partir de {minDays} dia{minDays === '1' ? '' : 's'} depois do envio do
+              email, se ninguém tiver respondido.
+            </p>
+          </div>
+        </div>
       ) : (
         <>
           <p className="mb-3 text-[13px] text-muted-foreground">
@@ -62,10 +109,10 @@ export function AwaitingReplyPage() {
               ` · ${formatNumber(rows.length - pending.length)} já receberam WhatsApp`}
           </p>
 
-          <div className="overflow-x-auto rounded-lg border border-border bg-surface">
+          <div className="overflow-x-auto rounded-2xl border border-border bg-surface">
             <table className="w-full border-collapse text-[13px]">
               <thead>
-                <tr className="border-b border-border">
+                <tr className="border-b border-border bg-muted/30">
                   <Th>Empresa</Th>
                   <Th>Contato</Th>
                   <Th>Email enviado</Th>

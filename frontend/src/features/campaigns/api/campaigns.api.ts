@@ -17,6 +17,11 @@ export const campaignsApi = {
 
   batches: (id: string) => http.get<{ data: Batch[] }>(`/campaigns/${id}/batches`),
 
+  /** Pausing stops the campaign from being a place to send the next batch
+   * from. Nothing already sent changes. */
+  setStatus: (id: string, status: 'active' | 'paused' | 'completed') =>
+    http.patch<Campaign>(`/campaigns/${id}/status`, { status }),
+
   /** Removes the campaign only: everything it already sent stays in the
    * contact history, so "já contatei essa empresa" survives. */
   remove: (id: string) => http.del<{ status: string }>(`/campaigns/${id}`),

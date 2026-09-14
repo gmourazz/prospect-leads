@@ -33,6 +33,24 @@ export function useCampaignBatches(id: string) {
   })
 }
 
+export function useSetCampaignStatus() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, status }: { id: string; status: 'active' | 'paused' | 'completed' }) =>
+      campaignsApi.setStatus(id, status),
+    onSuccess: (campaign) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.campaigns.all })
+      queryClient.invalidateQueries({ queryKey: queryKeys.campaigns.detail(campaign.id) })
+      const message =
+        campaign.status === 'paused' ? 'Campanha pausada'
+        : campaign.status === 'completed' ? 'Campanha marcada como concluída'
+        : 'Campanha retomada'
+      toast.success(message)
+    },
+    onError: (error) => toast.error(error instanceof ApiError ? error.userMessage : 'Algo deu errado.'),
+  })
+}
+
 export function useDeleteCampaign() {
   const queryClient = useQueryClient()
   return useMutation({

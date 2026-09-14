@@ -6,6 +6,8 @@ export interface TemplateInput {
   description?: string
   segment_id?: string
   audience?: string
+  channel?: string
+  purpose?: string
   subject: string
   body: string
   attachment_ids?: string[]

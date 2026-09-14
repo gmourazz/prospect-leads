@@ -1,10 +1,10 @@
 import type { LeadStatus } from '@/types/domain'
 
-export const LEAD_STATUS_TONE: Record<LeadStatus, 'neutral' | 'success' | 'warning' | 'danger' | 'info'> = {
-  new: 'neutral',
+export const LEAD_STATUS_TONE: Record<LeadStatus, 'neutral' | 'success' | 'warning' | 'danger' | 'info' | 'accent'> = {
+  new: 'accent',
   qualified: 'info',
   contacted: 'info',
-  replied: 'warning',
+  replied: 'success',
   interested: 'warning',
   negotiating: 'info',
   customer: 'success',

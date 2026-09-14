@@ -16,13 +16,13 @@ export const SelectTrigger = React.forwardRef<
     className={cn(
       'flex h-9 w-full items-center justify-between gap-2 rounded-md border border-input bg-surface px-3 text-sm shadow-subtle transition-colors',
       'data-[placeholder]:text-muted-foreground/70',
-      'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 focus:ring-offset-background',
+      'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background',
       'disabled:cursor-not-allowed disabled:opacity-50',
       className,
     )}
     {...props}
   >
-    <span className="truncate text-left">{children}</span>
+    <span className="flex min-w-0 items-center gap-1.5 truncate text-left [&_svg]:shrink-0">{children}</span>
     <SelectPrimitive.Icon asChild>
       <ChevronDown className="size-4 shrink-0 text-muted-foreground" />
     </SelectPrimitive.Icon>

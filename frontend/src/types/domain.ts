@@ -72,6 +72,7 @@ export interface LeadFilters {
   page?: number
   limit?: number
   open_now?: 'true' | 'false'
+  has_email?: 'true' | 'false'
 }
 
 export interface Segment {
@@ -100,6 +101,12 @@ export interface Template {
   /** Who the pitch is written for: no_website (posso fazer um), has_website
    * (posso melhorar o seu) or any. */
   audience: 'no_website' | 'has_website' | 'any'
+  /** Organizational only — there's still one automated send gateway
+   * (email); a "whatsapp" template is meant to be copied or hand-sent. */
+  channel: 'email' | 'whatsapp'
+  /** WHEN in the relationship this fits: cold first touch, or a remarketing
+   * nudge to someone already contacted before. */
+  purpose: 'first_contact' | 'remarketing'
   is_active: boolean
   version_id: string | null
   version: number
@@ -284,4 +291,14 @@ export const TEMPLATE_AUDIENCE_LABELS: Record<string, string> = {
   no_website: 'Sem site',
   has_website: 'Já tem site',
   any: 'Todos',
+}
+
+export const TEMPLATE_CHANNEL_LABELS: Record<string, string> = {
+  email: 'Email',
+  whatsapp: 'WhatsApp',
+}
+
+export const TEMPLATE_PURPOSE_LABELS: Record<string, string> = {
+  first_contact: 'Primeiro contato',
+  remarketing: 'Remarketing',
 }

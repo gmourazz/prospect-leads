@@ -1,6 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import * as Icons from 'lucide-react'
-import { Plus, Tag } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -15,16 +14,14 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { useCreateSegment, useSegments, useUpdateSegment } from '@/features/segments/hooks/useSegments'
+import { useTemplates } from '@/features/templates/hooks/useTemplates'
 import { formatNumber } from '@/lib/format'
 import { cn } from '@/lib/cn'
-
-const COLOR_SWATCHES: Record<string, string> = {
-  slate: '#64748b', amber: '#d97706', sky: '#0284c7', cyan: '#0891b2',
-  lime: '#65a30d', violet: '#7c3aed', rose: '#e11d48', emerald: '#059669',
-}
+import { SEGMENT_COLOR_HEX as COLOR_SWATCHES, initials, segmentTint } from '@/lib/segment-colors'
 
 export function SegmentsPage() {
   const { data } = useSegments()
+  const { data: templatesData } = useTemplates()
   const createSegment = useCreateSegment()
   const updateSegment = useUpdateSegment()
   const [open, setOpen] = useState(false)
@@ -43,36 +40,39 @@ export function SegmentsPage() {
     <div>
       <PageHeader
         title="Segmentos"
-        description="Verticais de prospecção, cadastráveis a qualquer momento"
+        description="Verticais de prospecção — cada uma define o template padrão"
         actions={<Button size="sm" onClick={() => setOpen(true)}><Plus /> Novo segmento</Button>}
       />
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
         {data?.data.map((segment) => {
-          const Icon = (Icons as unknown as Record<string, Icons.LucideIcon>)[segment.icon] ?? Tag
           const swatch = COLOR_SWATCHES[segment.color] ?? COLOR_SWATCHES.slate
+          const defaultTemplate = templatesData?.data.find((t) => t.segment_id === segment.id)
           return (
             <Card key={segment.id}>
-              <CardContent className="flex items-center gap-3 p-4">
-                <div
-                  className="flex size-9 shrink-0 items-center justify-center rounded-md"
-                  style={{ backgroundColor: `${swatch}1a`, color: swatch }}
-                >
-                  <Icon className="size-4" />
+              <CardContent className="p-5">
+                <div className="flex items-start gap-3">
+                  <div
+                    className="flex size-10 shrink-0 items-center justify-center rounded-xl text-[12.5px] font-bold"
+                    style={{ backgroundColor: segmentTint(segment.color), color: swatch }}
+                  >
+                    {initials(segment.name)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-semibold">{segment.name}</p>
+                    <p className="text-[12.5px] text-muted-foreground">
+                      {formatNumber(segment.lead_count)} lead{segment.lead_count === 1 ? '' : 's'} ·{' '}
+                      {defaultTemplate ? `template ${defaultTemplate.name}` : 'sem template padrão'}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={segment.is_active}
+                    onCheckedChange={(checked) =>
+                      updateSegment.mutate({ id: segment.id, is_active: checked })
+                    }
+                    aria-label={`Ativar ${segment.name}`}
+                  />
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium">{segment.name}</p>
-                  <p className="text-[12px] text-muted-foreground">
-                    {formatNumber(segment.lead_count)} lead{segment.lead_count === 1 ? '' : 's'}
-                  </p>
-                </div>
-                <Switch
-                  checked={segment.is_active}
-                  onCheckedChange={(checked) =>
-                    updateSegment.mutate({ id: segment.id, is_active: checked })
-                  }
-                  aria-label={`Ativar ${segment.name}`}
-                />
               </CardContent>
             </Card>
           )

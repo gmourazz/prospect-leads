@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
-import { LogOut, Moon, Sun } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { LogOut, Moon, Search, Sun } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,8 +13,11 @@ import { useAuth } from '@/features/auth/useAuth'
 
 export function Topbar() {
   const { user, logout } = useAuth()
-  const [theme, setTheme] = useState<'light' | 'dark'>(() =>
-    (localStorage.getItem('prospect-theme') as 'light' | 'dark') ?? 'light',
+  const navigate = useNavigate()
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [query, setQuery] = useState('')
+  const [theme, setTheme] = useState<'light' | 'dark'>(
+    () => (localStorage.getItem('prospect-theme') as 'light' | 'dark') ?? 'dark',
   )
 
   useEffect(() => {
@@ -22,34 +25,71 @@ export function Topbar() {
     localStorage.setItem('prospect-theme', theme)
   }, [theme])
 
-  const initials = (user?.name ?? user?.email ?? '?')
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'k' && (event.metaKey || event.ctrlKey)) {
+        event.preventDefault()
+        inputRef.current?.focus()
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
+
+  const name = user?.name ?? user?.email ?? ''
+  const initials = (name || '?')
     .split(' ')
-    .map((p) => p[0])
+    .map((part) => part[0])
     .slice(0, 2)
     .join('')
     .toUpperCase()
 
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-border bg-surface/80 px-6 backdrop-blur">
-      <div className="md:hidden">
-        <p className="text-sm font-semibold">Prospect</p>
-      </div>
-      <div className="ml-auto flex items-center gap-2">
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+    <header className="flex h-16 shrink-0 items-center justify-between gap-4 border-b border-border bg-surface/80 px-6 backdrop-blur">
+      <form
+        className="min-w-0 flex-1 md:max-w-md"
+        onSubmit={(event) => {
+          event.preventDefault()
+          if (query.trim()) navigate(`/leads?q=${encodeURIComponent(query.trim())}`)
+        }}
+      >
+        <div className="flex h-11 items-center gap-2.5 rounded-2xl bg-muted px-3.5 transition-colors focus-within:bg-muted/70 focus-within:ring-2 focus-within:ring-ring">
+          <Search className="size-4 shrink-0 text-muted-foreground" />
+          <input
+            ref={inputRef}
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Buscar em tudo…"
+            aria-label="Buscar em tudo"
+            className="min-w-0 flex-1 bg-transparent text-[13.5px] outline-none placeholder:text-muted-foreground"
+          />
+          <kbd className="hidden shrink-0 rounded-md border border-border bg-surface px-1.5 py-0.5 font-sans text-[11px] text-muted-foreground sm:block">
+            ⌘K
+          </kbd>
+        </div>
+      </form>
+
+      <div className="flex shrink-0 items-center gap-2">
+        <button
+          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
           aria-label="Alternar tema"
+          title={theme === 'dark' ? 'Mudar para tema claro' : 'Mudar para tema escuro'}
+          className="flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground transition-colors hover:text-foreground"
         >
-          {theme === 'light' ? <Moon /> : <Sun />}
-        </Button>
+          {theme === 'dark' ? <Sun className="size-4" /> : <Moon className="size-4" />}
+        </button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
-              className="flex size-7 items-center justify-center rounded-full bg-accent text-[11px] font-semibold text-accent-foreground transition-opacity hover:opacity-80"
+              className="flex items-center gap-2 rounded-full bg-muted py-1 pl-1 pr-3.5 transition-opacity hover:opacity-80"
               aria-label="Menu do usuário"
             >
-              {initials}
+              <span className="flex size-8 items-center justify-center rounded-full bg-primary text-[11px] font-semibold text-primary-foreground">
+                {initials}
+              </span>
+              <span className="hidden text-[13.5px] font-medium sm:block">
+                {name.split(' ')[0]}
+              </span>
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">

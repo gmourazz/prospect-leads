@@ -28,3 +28,35 @@ func (r *SettingsRepo) SetEmailSignature(ctx context.Context, signature string) 
 		signature)
 	return TranslateError(err)
 }
+
+// SendRules caps how a batch can be sent by hand — SendBatch checks these
+// before reserving anything, but nothing here runs on its own: without a
+// click, no email goes out regardless of day or hour.
+type SendRules struct {
+	DailyLimit int     `json:"daily_send_limit"`
+	Weekdays   []int16 `json:"send_weekdays"` // ISO: 1=segunda..7=domingo
+	HourStart  int     `json:"send_hour_start"`
+	HourEnd    int     `json:"send_hour_end"`
+}
+
+func (r *SettingsRepo) SendRules(ctx context.Context) (SendRules, error) {
+	var sr SendRules
+	err := r.DB(ctx).QueryRow(ctx, `
+		SELECT daily_send_limit, send_weekdays, send_hour_start, send_hour_end
+		  FROM app_settings WHERE id = 1`).
+		Scan(&sr.DailyLimit, &sr.Weekdays, &sr.HourStart, &sr.HourEnd)
+	if err != nil {
+		return SendRules{}, TranslateError(err)
+	}
+	return sr, nil
+}
+
+func (r *SettingsRepo) SetSendRules(ctx context.Context, sr SendRules) error {
+	_, err := r.DB(ctx).Exec(ctx, `
+		UPDATE app_settings
+		   SET daily_send_limit = $1, send_weekdays = $2,
+		       send_hour_start = $3, send_hour_end = $4, updated_at = now()
+		 WHERE id = 1`,
+		sr.DailyLimit, sr.Weekdays, sr.HourStart, sr.HourEnd)
+	return TranslateError(err)
+}

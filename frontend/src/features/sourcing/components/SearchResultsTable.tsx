@@ -4,10 +4,10 @@ import type { SearchCandidate } from '../api/sourcing.api'
 
 export function SearchResultsTable({ results }: { results: SearchCandidate[] }) {
   return (
-    <div className="overflow-x-auto rounded-lg border border-border bg-surface">
+    <div className="overflow-x-auto rounded-2xl border border-border bg-surface">
       <table className="w-full border-collapse text-[13px]">
         <thead>
-          <tr className="border-b border-border">
+          <tr className="border-b border-border bg-muted/30">
             <th className="px-4 py-2.5 text-left text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
               Empresa
             </th>

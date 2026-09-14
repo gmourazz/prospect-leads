@@ -13,8 +13,8 @@ export function SelectionBar({
 }) {
   if (count === 0) return null
   return (
-    <div className="sticky bottom-4 z-10 mx-auto flex w-fit animate-slide-up items-center gap-3 rounded-lg border border-border bg-surface px-4 py-2.5 shadow-overlay">
-      <span className="text-[13px] font-medium tabular">
+    <div className="sticky bottom-4 z-10 mx-auto flex w-fit animate-slide-up items-center gap-3 rounded-full border border-primary/30 bg-surface px-4 py-2.5 shadow-overlay">
+      <span className="text-[13px] font-bold tabular text-accent-foreground">
         {formatNumber(count)} selecionado{count > 1 ? 's' : ''}
       </span>
       <Button size="sm" onClick={onCreateCampaign}>

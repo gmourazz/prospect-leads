@@ -31,6 +31,7 @@ type API struct {
 	Companies   *postgres.CompanyRepo
 	Users       *postgres.UserRepo
 	Attachments *postgres.AttachmentRepo
+	SearchRuns  *postgres.SearchRunRepo
 	Settings    *postgres.SettingsRepo
 	Logger      *slog.Logger
 	CORS        string
@@ -105,6 +106,7 @@ func (a *API) mountProtectedRoutes(r chi.Router) {
 	})
 
 	r.Get("/suppressions", a.listSuppressions)
+	r.Post("/suppressions", a.blockPhone)
 
 	r.Route("/templates", func(r chi.Router) {
 		r.Get("/", a.listTemplates)
@@ -124,6 +126,7 @@ func (a *API) mountProtectedRoutes(r chi.Router) {
 		r.Get("/{id}/batches", a.listBatches)
 		r.Post("/{id}/batches", a.sendBatch)
 		r.Post("/{id}/preview", a.previewMessage)
+		r.Patch("/{id}/status", a.setCampaignStatus)
 		r.Delete("/{id}", a.deleteCampaign)
 	})
 
@@ -144,8 +147,12 @@ func (a *API) mountProtectedRoutes(r chi.Router) {
 	r.Get("/leads/enrich-emails/progress", a.enrichEmailsProgress)
 
 	r.Post("/searches", a.searchLeads)
+	r.Get("/searches/recent", a.recentSearches)
 	r.Post("/searches/import", a.importSearchResults)
 	r.Get("/searches/usage", a.searchUsage)
+	r.Post("/searches/state", a.searchState)
+	r.Get("/searches/state/progress", a.searchStateProgress)
+	r.Post("/searches/state/cancel", a.cancelSearchState)
 }
 
 // ------------------------------------------------------------- segments
@@ -235,6 +242,10 @@ func parseFilters(r *http.Request) domain.LeadFilters {
 	if v := q.Get("open_now"); v == "true" || v == "false" {
 		open := v == "true"
 		f.OpenNow = &open
+	}
+	if v := q.Get("has_email"); v == "true" || v == "false" {
+		has := v == "true"
+		f.HasEmail = &has
 	}
 	if v := q.Get("collected_from"); v != "" {
 		if t, err := time.Parse("2006-01-02", v); err == nil {

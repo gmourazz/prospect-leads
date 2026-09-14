@@ -1,10 +1,13 @@
 import { useMemo, useState } from 'react'
-import { MailSearch, Send } from 'lucide-react'
+import { MailSearch, Send, Sheet } from 'lucide-react'
+import { toast } from 'sonner'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { ErrorState } from '@/components/common/ErrorState'
 import { Pagination } from '@/components/common/Pagination'
 import { useLeadFilters } from '@/features/leads/hooks/useLeadFilters'
+import { useLeadDensity } from '@/features/leads/hooks/useLeadDensity'
 import { useEnrichEmails, useEnrichProgress, useLeads } from '@/features/leads/hooks/useLeads'
+import { leadsApi } from '@/features/leads/api/leads.api'
 import { LeadsToolbar } from '@/features/leads/components/LeadsToolbar'
 import { LeadsTable } from '@/features/leads/components/LeadsTable'
 import { EnrichProgressBar } from '@/features/leads/components/EnrichProgressBar'
@@ -14,6 +17,9 @@ import { NewLeadDialog } from '@/features/leads/components/NewLeadDialog'
 import { CreateCampaignDialog } from '@/features/campaigns/components/CreateCampaignDialog'
 import { Button } from '@/components/ui/button'
 import { formatNumber } from '@/lib/format'
+import { downloadCsv, toCsv } from '@/lib/csv'
+import { contactBadge } from '@/features/leads/model/contact-badge'
+import { WEBSITE_STATUS_LABELS } from '@/types/domain'
 
 export function LeadsPage() {
   const { filters, setFilter, reset, activeCount } = useLeadFilters()
@@ -21,11 +27,41 @@ export function LeadsPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [newLeadOpen, setNewLeadOpen] = useState(false)
   const [campaignOpen, setCampaignOpen] = useState(false)
+  const [filtersOpen, setFiltersOpen] = useState(false)
+  const [density, setDensity] = useLeadDensity()
+  const [exporting, setExporting] = useState(false)
   const enrichEmails = useEnrichEmails()
   const { data: enrichProgress } = useEnrichProgress()
 
   const leads = data?.data ?? []
   const counts = data?.meta.counts
+
+  async function handleExport() {
+    if (!counts || counts.total === 0) return
+    setExporting(true)
+    try {
+      const all = await leadsApi.list({ ...filters, page: undefined, limit: counts.total })
+      const rows: (string | number)[][] = [
+        ['Empresa', 'Segmento', 'Cidade', 'Estado', 'Telefone', 'Email', 'Site', 'Status', 'Última interação'],
+        ...all.data.map((lead) => [
+          lead.company.name,
+          lead.segment?.name ?? '',
+          lead.company.city ?? '',
+          lead.company.state ?? '',
+          lead.contact.phone_display,
+          lead.contact.email ?? '',
+          WEBSITE_STATUS_LABELS[lead.company.website_status],
+          contactBadge(lead.contact).label,
+          lead.last_interaction_at ?? '',
+        ]),
+      ]
+      downloadCsv(`leads-${new Date().toISOString().slice(0, 10)}.csv`, toCsv(rows))
+    } catch {
+      toast.error('Não foi possível exportar os leads.')
+    } finally {
+      setExporting(false)
+    }
+  }
 
   const toggle = (id: string) =>
     setSelected((prev) => {
@@ -78,6 +114,16 @@ export function LeadsPage() {
               Buscar emails
             </Button>
             <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleExport}
+              loading={exporting}
+              disabled={!counts || counts.total === 0}
+            >
+              <Sheet />
+              Exportar
+            </Button>
+            <Button
               variant="secondary"
               size="sm"
               onClick={() => setCampaignOpen(true)}
@@ -95,10 +141,15 @@ export function LeadsPage() {
       <div className="mb-4">
         <LeadsToolbar
           filters={filters}
+          counts={counts}
           onSetFilter={setFilter}
           onApplyFilters={applyFilters}
           activeCount={activeCount}
           onNewLead={() => setNewLeadOpen(true)}
+          density={density}
+          onDensityChange={setDensity}
+          filtersOpen={filtersOpen}
+          onFiltersOpenChange={setFiltersOpen}
         />
       </div>
 
@@ -112,6 +163,7 @@ export function LeadsPage() {
             selected={selected}
             onToggle={toggle}
             onToggleAll={toggleAll}
+            density={density}
           />
           {counts && (
             <Pagination

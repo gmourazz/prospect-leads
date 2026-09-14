@@ -1,1 +1,2 @@
+/uploads/*  https://prospect-backend-production.up.railway.app/uploads/:splat  200
 /*  /index.html  200

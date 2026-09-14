@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { ImagePlus, Loader2, X } from 'lucide-react'
+import { ImagePlus, Loader2, MapPin, X } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   Dialog,
@@ -19,10 +19,25 @@ import { templatesApi } from '../api/templates.api'
 import { VariablePicker } from './VariablePicker'
 import { MessagePreview } from '@/features/campaigns/components/MessagePreview'
 import { ApiError } from '@/lib/api-error'
+import { cn } from '@/lib/cn'
 import type { Template, TemplateImage } from '@/types/domain'
 
 const NONE = '__none__'
 const MAX_IMAGES = 5
+
+/** Mirrors outreach.Greeting on the backend — same 3-bucket rule, same
+ * timezone — so the editor's preview shows what will actually go out. */
+function greetingNow() {
+  const raw = Number(
+    new Intl.DateTimeFormat('en-US', { timeZone: 'America/Sao_Paulo', hour: 'numeric', hour12: false }).format(
+      new Date(),
+    ),
+  )
+  const hour = raw === 24 ? 0 : raw
+  if (hour < 12) return 'Bom dia'
+  if (hour < 18) return 'Boa tarde'
+  return 'Boa noite'
+}
 
 export function TemplateEditor({
   open,
@@ -42,6 +57,8 @@ export function TemplateEditor({
   const [name, setName] = useState(template?.name ?? '')
   const [segmentId, setSegmentId] = useState(template?.segment_id ?? '')
   const [audience, setAudience] = useState<string>(template?.audience ?? 'no_website')
+  const [channel, setChannel] = useState<string>(template?.channel ?? 'email')
+  const [purpose, setPurpose] = useState<string>(template?.purpose ?? 'first_contact')
   const [subject, setSubject] = useState(template?.subject ?? '')
   const [body, setBody] = useState(template?.body ?? '')
   const [images, setImages] = useState<TemplateImage[]>(template?.images ?? [])
@@ -87,7 +104,9 @@ export function TemplateEditor({
     const payload = {
       name,
       audience,
-      subject,
+      channel,
+      purpose,
+      subject: channel === 'whatsapp' ? '' : subject,
       body,
       segment_id: segmentId || undefined,
       attachment_ids: images.map((img) => img.id),
@@ -102,6 +121,8 @@ export function TemplateEditor({
           setSubject('')
           setBody('')
           setSegmentId('')
+          setChannel('email')
+          setPurpose('first_contact')
           setImages([])
         },
       })
@@ -114,6 +135,7 @@ export function TemplateEditor({
     .replace(/\{\{segmento\}\}/g, 'barbearia')
     .replace(/\{\{cidade\}\}/g, 'Uberlândia')
     .replace(/\{\{estado\}\}/g, 'MG')
+    .replace(/\{\{saudacao\}\}/g, greetingNow())
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -131,14 +153,14 @@ export function TemplateEditor({
             <Select value={segmentId || NONE} onValueChange={(v) => setSegmentId(v === NONE ? '' : v)}>
               <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value={NONE}>Nenhum</SelectItem>
+                <SelectItem value={NONE}>Todos os segmentos</SelectItem>
                 {segments?.data.map((s) => (
                   <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-          <div className="col-span-2 space-y-1.5">
+          <div className="space-y-1.5">
             <Label>Para quem é</Label>
             <Select value={audience} onValueChange={setAudience}>
               <SelectTrigger><SelectValue /></SelectTrigger>
@@ -149,14 +171,36 @@ export function TemplateEditor({
               </SelectContent>
             </Select>
           </div>
-          <div className="col-span-2 space-y-1.5">
-            <Label>Assunto</Label>
-            <Input
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
-              placeholder="Portfólio e preços para {{nome_empresa}}"
-            />
+          <div className="space-y-1.5">
+            <Label>Canal</Label>
+            <Select value={channel} onValueChange={setChannel}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="email">Email</SelectItem>
+                <SelectItem value="whatsapp">WhatsApp</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
+          <div className="col-span-2 space-y-1.5">
+            <Label>Momento</Label>
+            <Select value={purpose} onValueChange={setPurpose}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="first_contact">Primeiro contato</SelectItem>
+                <SelectItem value="remarketing">Remarketing</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {channel === 'email' && (
+            <div className="col-span-2 space-y-1.5">
+              <Label>Assunto</Label>
+              <Input
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                placeholder="Portfólio e preços para {{nome_empresa}}"
+              />
+            </div>
+          )}
           <div className="col-span-2 space-y-1.5">
             <Label>Variáveis</Label>
             <VariablePicker onInsert={insertVariable} />
@@ -197,19 +241,35 @@ export function TemplateEditor({
             </div>
             {images.length > 0 && (
               <div className="grid grid-cols-5 gap-2">
-                {images.map((img) => (
-                  <div key={img.id} className="group relative aspect-square overflow-hidden rounded-md border border-border">
-                    <img src={img.url} alt={img.filename} className="size-full object-cover" />
-                    <button
-                      type="button"
-                      onClick={() => removeImage(img.id)}
-                      className="absolute right-1 top-1 flex size-5 items-center justify-center rounded-full bg-foreground/70 text-white opacity-0 transition-opacity group-hover:opacity-100"
-                      aria-label={`Remover ${img.filename}`}
-                    >
-                      <X className="size-3" />
-                    </button>
-                  </div>
-                ))}
+                {images.map((img, i) => {
+                  const token = `imagem_${i + 1}`
+                  const placed = body.includes(`{{${token}}}`)
+                  return (
+                    <div key={img.id} className="group relative aspect-square overflow-hidden rounded-md border border-border">
+                      <img src={img.url} alt={img.filename} className="size-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => removeImage(img.id)}
+                        className="absolute right-1 top-1 flex size-5 items-center justify-center rounded-full bg-foreground/70 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                        aria-label={`Remover ${img.filename}`}
+                      >
+                        <X className="size-3" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => insertVariable(token)}
+                        title={placed ? 'Já está na mensagem' : 'Inserir esta imagem na mensagem'}
+                        className={cn(
+                          'absolute inset-x-0 bottom-0 flex items-center justify-center gap-1 py-0.5 text-[10px] font-medium text-white transition-opacity',
+                          placed ? 'bg-primary/80 opacity-100' : 'bg-foreground/70 opacity-0 group-hover:opacity-100',
+                        )}
+                      >
+                        <MapPin className="size-3" />
+                        {placed ? 'Na mensagem' : 'Inserir aqui'}
+                      </button>
+                    </div>
+                  )
+                })}
                 {uploading && (
                   <div className="flex aspect-square items-center justify-center rounded-md border border-dashed border-border">
                     <Loader2 className="size-4 animate-spin text-muted-foreground" />
@@ -222,7 +282,11 @@ export function TemplateEditor({
           {body && (
             <div className="col-span-2">
               <Label className="mb-1.5 block">Prévia</Label>
-              <MessagePreview subject={subject} body={previewBody} images={images.map((i) => i.url)} />
+              <MessagePreview
+                subject={channel === 'whatsapp' ? '' : subject}
+                body={previewBody}
+                images={images.map((i) => i.url)}
+              />
             </div>
           )}
         </div>
@@ -231,7 +295,7 @@ export function TemplateEditor({
           <Button
             onClick={handleSave}
             loading={create.isPending || newVersion.isPending}
-            disabled={!name || !subject || !body || uploading}
+            disabled={!name || (channel === 'email' && !subject) || !body || uploading}
           >
             Salvar
           </Button>

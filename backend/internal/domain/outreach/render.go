@@ -5,10 +5,63 @@ import (
 	"net/url"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
+	"time"
 )
 
+// saoPauloLocation is loaded once; a missing tzdata falls back to UTC rather
+// than failing the render (a slightly-off greeting beats a broken send).
+var saoPauloLocation = func() *time.Location {
+	loc, err := time.LoadLocation("America/Sao_Paulo")
+	if err != nil {
+		return time.UTC
+	}
+	return loc
+}()
+
+// Greeting returns "Bom dia" / "Boa tarde" / "Boa noite" for the current
+// time in Brasília — used by {{saudacao}}, which is deliberately NOT part of
+// BuildVars: BuildVars gets computed once and persisted with the campaign
+// target, while a greeting must reflect the moment each message actually
+// goes out, so Render resolves it fresh on every call instead.
+func Greeting(now time.Time) string {
+	switch hour := now.In(saoPauloLocation).Hour(); {
+	case hour < 12:
+		return "Bom dia"
+	case hour < 18:
+		return "Boa tarde"
+	default:
+		return "Boa noite"
+	}
+}
+
 var variablePattern = regexp.MustCompile(`\{\{\s*([a-z0-9_]+)\s*\}\}`)
+
+// imageTokenPattern marks WHERE an attached image goes in the message, e.g.
+// {{imagem_1}} for the first image in the template's Images list (1-based,
+// matching the order they're shown/uploaded in the editor). A template with
+// no such token keeps today's behavior: every attached image just rides
+// along as a plain attachment, in list order, position unspecified.
+var imageTokenPattern = regexp.MustCompile(`\{\{\s*imagem_(\d+)\s*\}\}`)
+
+// HasImageTokens reports whether the body places at least one attached image
+// at a specific spot instead of leaving all of them implicit attachments.
+func HasImageTokens(body string) bool {
+	return imageTokenPattern.MatchString(body)
+}
+
+// ImageTokenIndexes returns the 1-based image indexes referenced by {{imagem_N}}
+// tokens in the body, in the order they appear.
+func ImageTokenIndexes(body string) []int {
+	var out []int
+	for _, m := range imageTokenPattern.FindAllStringSubmatch(body, -1) {
+		if n, err := strconv.Atoi(m[1]); err == nil && n > 0 {
+			out = append(out, n)
+		}
+	}
+	return out
+}
 
 // KnownVariables is the catalogue offered in the template editor.
 var KnownVariables = []string{
@@ -17,6 +70,7 @@ var KnownVariables = []string{
 	"segmento",
 	"cidade",
 	"estado",
+	"saudacao",
 }
 
 // ExtractVariables returns the sorted, deduplicated variable names used in a
@@ -42,9 +96,10 @@ func UnknownVariables(body string) []string {
 	}
 	var out []string
 	for _, v := range ExtractVariables(body) {
-		if !known[v] {
-			out = append(out, v)
+		if known[v] || imageTokenPattern.MatchString("{{"+v+"}}") {
+			continue
 		}
+		out = append(out, v)
 	}
 	return out
 }
@@ -54,7 +109,16 @@ func UnknownVariables(body string) []string {
 // placeholder reaching a real person is worse than a missing word.
 func Render(body string, vars map[string]string) string {
 	out := variablePattern.ReplaceAllStringFunc(body, func(match string) string {
+		// {{imagem_N}} is not a text variable — it marks where an attached
+		// image goes and is left in place for the messaging gateway to
+		// resolve against the template's actual image list.
+		if imageTokenPattern.MatchString(match) {
+			return match
+		}
 		name := variablePattern.FindStringSubmatch(match)[1]
+		if name == "saudacao" {
+			return Greeting(time.Now())
+		}
 		return vars[name]
 	})
 	// Collapse the double spaces an empty substitution can leave behind.

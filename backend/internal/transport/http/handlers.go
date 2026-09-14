@@ -10,6 +10,7 @@ import (
 	"github.com/geovanna/prospect/backend/internal/adapters/postgres"
 	"github.com/geovanna/prospect/backend/internal/application"
 	"github.com/geovanna/prospect/backend/internal/domain"
+	"github.com/geovanna/prospect/backend/internal/domain/contact"
 	"github.com/geovanna/prospect/backend/internal/domain/outreach"
 )
 
@@ -116,6 +117,31 @@ func (a *API) deleteCampaign(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
 }
 
+func (a *API) setCampaignStatus(w http.ResponseWriter, r *http.Request) {
+	id, err := uuidParam(r, "id")
+	if err != nil {
+		writeError(w, r, err)
+		return
+	}
+	var body struct {
+		Status string `json:"status"`
+	}
+	if err := decode(r, &body); err != nil {
+		writeError(w, r, err)
+		return
+	}
+	if err := a.Outreach.SetCampaignStatus(r.Context(), id, body.Status); err != nil {
+		writeError(w, r, err)
+		return
+	}
+	campaign, err := a.Outreach.GetCampaign(r.Context(), id)
+	if err != nil {
+		writeError(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, campaign)
+}
+
 // enrichEmails looks for public email addresses for every lead that still
 // has none. It returns as soon as the work is queued: discovery paces its
 // own search queries, so a few hundred leads take minutes.
@@ -178,6 +204,39 @@ func (a *API) suppressContact(w http.ResponseWriter, r *http.Request) {
 		Note   string `json:"note"`
 	}
 	if err := decode(r, &body); err != nil {
+		writeError(w, r, err)
+		return
+	}
+	if body.Reason == "" {
+		body.Reason = "user_request"
+	}
+	if err := a.Contacts.Suppress(r.Context(), id, body.Reason, body.Note, UserFromContext(r.Context())); err != nil {
+		writeError(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, map[string]string{"status": "suppressed"})
+}
+
+// blockPhone lets a number be suppressed before it has ever been imported —
+// resolving or creating its contact_point first, since suppressions are
+// keyed on that immortal entity, never on a raw phone string.
+func (a *API) blockPhone(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Phone  string `json:"phone"`
+		Reason string `json:"reason"`
+		Note   string `json:"note"`
+	}
+	if err := decode(r, &body); err != nil {
+		writeError(w, r, err)
+		return
+	}
+	n, err := contact.Parse(body.Phone, "BR")
+	if err != nil {
+		writeError(w, r, domain.New(domain.CodeInvalidPhone, "telefone inválido: "+body.Phone))
+		return
+	}
+	id, _, err := a.Contacts.Upsert(r.Context(), n)
+	if err != nil {
 		writeError(w, r, err)
 		return
 	}
@@ -296,6 +355,8 @@ type templateBody struct {
 	Description   string   `json:"description"`
 	SegmentID     *string  `json:"segment_id"`
 	Audience      string   `json:"audience"`
+	Channel       string   `json:"channel"`
+	Purpose       string   `json:"purpose"`
 	Subject       string   `json:"subject"`
 	Body          string   `json:"body"`
 	AttachmentIDs []string `json:"attachment_ids"`
@@ -306,6 +367,8 @@ func (b templateBody) toInput() (postgres.TemplateInput, error) {
 		Name:        b.Name,
 		Description: b.Description,
 		Audience:    b.Audience,
+		Channel:     b.Channel,
+		Purpose:     b.Purpose,
 		Subject:     b.Subject,
 		Body:        b.Body,
 		Variables:   outreach.ExtractVariables(b.Body),

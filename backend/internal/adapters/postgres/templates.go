@@ -13,7 +13,7 @@ type TemplateRepo struct{ *Store }
 func NewTemplateRepo(s *Store) *TemplateRepo { return &TemplateRepo{s} }
 
 const templateSelect = `
-	SELECT t.id, t.name, t.description, t.segment_id, s.name, t.audience, t.is_active,
+	SELECT t.id, t.name, t.description, t.segment_id, s.name, t.audience, t.channel, t.purpose, t.is_active,
 	       v.id, COALESCE(v.version, 0), COALESCE(v.subject, ''), COALESCE(v.body, ''),
 	       COALESCE(v.variables, '{}'), t.updated_at
 	  FROM message_templates t
@@ -32,7 +32,7 @@ func (r *TemplateRepo) List(ctx context.Context) ([]domain.Template, error) {
 	for rows.Next() {
 		var t domain.Template
 		if err := rows.Scan(&t.ID, &t.Name, &t.Description, &t.SegmentID, &t.SegmentName,
-			&t.Audience, &t.IsActive, &t.VersionID, &t.Version, &t.Subject, &t.Body, &t.Variables,
+			&t.Audience, &t.Channel, &t.Purpose, &t.IsActive, &t.VersionID, &t.Version, &t.Subject, &t.Body, &t.Variables,
 			&t.UpdatedAt); err != nil {
 			return nil, TranslateError(err)
 		}
@@ -70,7 +70,7 @@ func (r *TemplateRepo) Get(ctx context.Context, id uuid.UUID) (domain.Template, 
 	var t domain.Template
 	err := r.DB(ctx).QueryRow(ctx, templateSelect+" AND t.id = $1", id).
 		Scan(&t.ID, &t.Name, &t.Description, &t.SegmentID, &t.SegmentName,
-			&t.Audience, &t.IsActive, &t.VersionID, &t.Version, &t.Subject, &t.Body, &t.Variables,
+			&t.Audience, &t.Channel, &t.Purpose, &t.IsActive, &t.VersionID, &t.Version, &t.Subject, &t.Body, &t.Variables,
 			&t.UpdatedAt)
 	if err != nil {
 		return t, TranslateError(err)
@@ -87,6 +87,8 @@ type TemplateInput struct {
 	Description   string
 	SegmentID     *uuid.UUID
 	Audience      string
+	Channel       string
+	Purpose       string
 	Subject       string
 	Body          string
 	Variables     []string
@@ -97,9 +99,10 @@ func (r *TemplateRepo) Create(ctx context.Context, in TemplateInput, by uuid.UUI
 	var templateID uuid.UUID
 	err := r.WithTx(ctx, func(ctx context.Context) error {
 		if err := r.DB(ctx).QueryRow(ctx, `
-			INSERT INTO message_templates (name, description, segment_id, audience, created_by)
-			VALUES ($1, NULLIF($2, ''), $3, COALESCE(NULLIF($4, ''), 'any'), $5)
-			RETURNING id`, in.Name, in.Description, in.SegmentID, in.Audience, by).Scan(&templateID); err != nil {
+			INSERT INTO message_templates (name, description, segment_id, audience, channel, purpose, created_by)
+			VALUES ($1, NULLIF($2, ''), $3, COALESCE(NULLIF($4, ''), 'any'), COALESCE(NULLIF($5, ''), 'email'),
+			        COALESCE(NULLIF($6, ''), 'first_contact'), $7)
+			RETURNING id`, in.Name, in.Description, in.SegmentID, in.Audience, in.Channel, in.Purpose, by).Scan(&templateID); err != nil {
 			return TranslateError(err)
 		}
 		versionID, err := r.insertVersion(ctx, templateID, in, by)
@@ -129,8 +132,10 @@ func (r *TemplateRepo) NewVersion(ctx context.Context, templateID uuid.UUID, in 
 			       description = COALESCE(NULLIF($4, ''), description),
 			       segment_id = COALESCE($5, segment_id),
 			       audience = COALESCE(NULLIF($6, ''), audience),
+			       channel = COALESCE(NULLIF($7, ''), channel),
+			       purpose = COALESCE(NULLIF($8, ''), purpose),
 			       updated_at = now()
-			 WHERE id = $1`, templateID, versionID, in.Name, in.Description, in.SegmentID, in.Audience)
+			 WHERE id = $1`, templateID, versionID, in.Name, in.Description, in.SegmentID, in.Audience, in.Channel, in.Purpose)
 		return TranslateError(err)
 	})
 }

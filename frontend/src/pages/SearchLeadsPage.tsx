@@ -4,29 +4,67 @@ import { CheckCircle2, Sparkles } from 'lucide-react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { EmptyState } from '@/components/common/EmptyState'
 import { Button } from '@/components/ui/button'
-import { SearchForm } from '@/features/sourcing/components/SearchForm'
+import { RecentSearches } from '@/features/sourcing/components/RecentSearches'
+import { SearchForm, type SearchParams } from '@/features/sourcing/components/SearchForm'
 import { SearchResultsTable } from '@/features/sourcing/components/SearchResultsTable'
+import { StateSearchProgressBar } from '@/features/sourcing/components/StateSearchProgressBar'
 import { UsageIndicator } from '@/features/sourcing/components/UsageIndicator'
-import { useImportSelected, useSearchLeads } from '@/features/sourcing/hooks/useSourcing'
+import {
+  useImportSelected,
+  useRecentSearches,
+  useSearchLeads,
+  useSearchState,
+  useStateSearchProgress,
+} from '@/features/sourcing/hooks/useSourcing'
 import { formatNumber } from '@/lib/format'
-import type { ImportSelectedResult } from '@/features/sourcing/api/sourcing.api'
+import type { ImportSelectedResult, SearchRun } from '@/features/sourcing/api/sourcing.api'
 
 export function SearchLeadsPage() {
   const search = useSearchLeads()
   const importSelected = useImportSelected()
+  const searchState = useSearchState()
+  const { data: stateProgress } = useStateSearchProgress()
+  const { data: recent } = useRecentSearches()
   const [imported, setImported] = useState<ImportSelectedResult | null>(null)
+  const [preset, setPreset] = useState<{ segmentId: string; city: string; state: string }>()
 
   const results = search.data?.results ?? []
+  const recentRuns = recent?.data ?? []
+
+  function repeatSearch(run: SearchRun) {
+    const params = {
+      segmentId: run.segment_id ?? 'all',
+      city: run.city,
+      state: run.state,
+    }
+    setPreset(params)
+    runSearch({
+      ...params,
+      limit: 20,
+      filters: {
+        only_without_site: true,
+        skip_existing: true,
+        require_mobile: false,
+        include_blocked: false,
+      },
+    })
+  }
 
   // Creating a lead sends nothing — the duplicate-contact guarantee lives
   // entirely at the dispatch layer, not here — so every valid result from a
   // search becomes a lead right away. No selection, no extra click: nothing
   // found gets lost. Actually contacting still requires an explicit action
   // per lead, on the Leads page.
-  function runSearch(params: { segmentId: string; city: string; state: string }) {
+  function runSearch(params: SearchParams) {
     setImported(null)
     search.mutate(
-      { segment_id: params.segmentId, city: params.city, state: params.state, limit: 30 },
+      {
+        segment_id: params.segmentId,
+        city: params.city,
+        state: params.state,
+        limit: params.limit,
+        ...params.filters,
+      },
       {
         onSuccess: (outcome) => {
           const candidates = outcome.results.filter((r) => !r.invalid)
@@ -50,16 +88,28 @@ export function SearchLeadsPage() {
     <div>
       <PageHeader
         title="Buscar leads"
-        description="Encontre empresas por segmento e cidade — os resultados já entram direto em Leads"
+        description="Encontre empresas por segmento e cidade — os resultados entram direto em Leads"
         actions={<UsageIndicator />}
       />
 
-      <div className="mb-4 rounded-lg border border-border bg-surface p-4">
+      <div className="mb-4 rounded-2xl border border-border bg-surface p-6">
         <SearchForm
           isLoading={search.isPending || importSelected.isPending}
+          isStateSearchRunning={Boolean(stateProgress?.running)}
+          preset={preset}
           onSearch={runSearch}
+          onSearchState={(params) =>
+            searchState.mutate({
+              segment_id: params.segmentId,
+              state: params.state,
+              cities: params.cities,
+              limit: params.limit,
+            })
+          }
         />
       </div>
+
+      {stateProgress && <StateSearchProgressBar progress={stateProgress} />}
 
       {search.data?.provider === 'openstreetmap' && (
         <div className="mb-4 flex items-start gap-2 rounded-md bg-info-subtle px-3 py-2.5 text-[12.5px] text-foreground">
@@ -88,13 +138,16 @@ export function SearchLeadsPage() {
       )}
 
       {results.length === 0 ? (
-        !search.isPending && (
+        !search.isPending &&
+        (recentRuns.length > 0 ? (
+          <RecentSearches runs={recentRuns} onRepeat={repeatSearch} />
+        ) : (
           <EmptyState
             icon={Sparkles}
             title="Nenhuma busca ainda"
             description="Escolha um segmento e uma cidade para encontrar empresas."
           />
-        )
+        ))
       ) : (
         <>
           <p className="mb-3 text-[13px] text-muted-foreground">

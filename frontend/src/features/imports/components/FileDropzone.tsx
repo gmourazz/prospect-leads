@@ -1,5 +1,6 @@
 import { useCallback, useState, type DragEvent } from 'react'
-import { FileSpreadsheet, Upload } from 'lucide-react'
+import { Upload } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/cn'
 
 export function FileDropzone({ onFile }: { onFile: (file: File) => void }) {
@@ -21,17 +22,18 @@ export function FileDropzone({ onFile }: { onFile: (file: File) => void }) {
       onDragLeave={() => setDragging(false)}
       onDrop={handleDrop}
       className={cn(
-        'flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-10 text-center transition-colors',
-        dragging ? 'border-primary bg-muted/50' : 'border-border hover:bg-muted/30',
+        'flex cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed p-16 text-center transition-colors',
+        dragging ? 'border-primary bg-primary/10' : 'border-primary/25 bg-primary/5 hover:bg-primary/10',
       )}
     >
-      <div className="flex size-11 items-center justify-center rounded-full bg-muted">
-        {dragging ? <Upload className="size-5" /> : <FileSpreadsheet className="size-5 text-muted-foreground" />}
+      <div className="flex size-14 items-center justify-center rounded-2xl bg-primary/10">
+        <Upload className="size-6 text-primary" />
       </div>
-      <p className="text-sm font-medium">Arraste um CSV aqui ou clique para selecionar</p>
-      <p className="text-[12px] text-muted-foreground">
-        Colunas de nome, telefone, cidade e site são detectadas automaticamente
-      </p>
+      <p className="text-base font-semibold">Arraste um CSV aqui ou clique para selecionar</p>
+      <p className="text-[13px] text-muted-foreground">Até 32 MB · colunas separadas por vírgula</p>
+      <Button asChild size="default" className="pointer-events-none mt-1">
+        <span>Selecionar arquivo</span>
+      </Button>
       <input
         type="file"
         accept=".csv,text/csv"

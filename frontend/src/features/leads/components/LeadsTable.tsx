@@ -2,10 +2,12 @@ import { Fragment } from 'react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { cn } from '@/lib/cn'
 import { formatDate, formatRelative } from '@/lib/format'
+import { initials, segmentColorHex, segmentTint } from '@/lib/segment-colors'
 import { LEAD_STATUS_LABELS, type Lead } from '@/types/domain'
 import { LEAD_STATUS_TONE } from '../model/lead-status'
-import { ContactStatusBadge } from './ContactStatusBadge'
+import type { Density } from '../hooks/useLeadDensity'
 import { WebsiteCell } from './WebsiteCell'
 import { LeadRowActions } from './LeadRowActions'
 
@@ -15,21 +17,27 @@ export function LeadsTable({
   selected,
   onToggle,
   onToggleAll,
+  density,
 }: {
   leads: Lead[]
   isLoading: boolean
   selected: Set<string>
   onToggle: (id: string) => void
   onToggleAll: (checked: boolean) => void
+  density: Density
 }) {
+  const rowPy = density === 'compact' ? '8px' : '14px'
   const allSelected = leads.length > 0 && leads.every((l) => selected.has(l.id))
   const someSelected = leads.some((l) => selected.has(l.id)) && !allSelected
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-border bg-surface">
+    <div
+      className="overflow-x-auto rounded-2xl border border-border bg-surface"
+      style={{ '--row-py': rowPy } as React.CSSProperties}
+    >
       <table className="w-full border-collapse text-[13px]">
         <thead>
-          <tr className="border-b border-border">
+          <tr className="border-b border-border bg-muted/30">
             <Th className="w-10">
               <Checkbox
                 checked={someSelected ? 'indeterminate' : allSelected}
@@ -53,7 +61,7 @@ export function LeadsTable({
             : leads.map((lead) => (
                 <tr
                   key={lead.id}
-                  className="group h-11 border-b border-border/70 transition-colors last:border-0 hover:bg-muted/40"
+                  className="group border-b border-border/70 transition-colors last:border-0 hover:bg-muted/40"
                 >
                   <Td>
                     <Checkbox
@@ -62,27 +70,48 @@ export function LeadsTable({
                       aria-label={`Selecionar ${lead.company.name}`}
                     />
                   </Td>
-                  <Td className="max-w-[220px]">
-                    <div className="flex items-center gap-1.5">
-                      <p className="truncate font-medium text-foreground">{lead.company.name}</p>
-                      {lead.company.is_open_now !== null && (
-                        <span
-                          className={`size-1.5 shrink-0 rounded-full ${
-                            lead.company.is_open_now ? 'bg-success' : 'bg-muted-foreground/40'
-                          }`}
-                          title={lead.company.is_open_now ? 'Aberto agora' : 'Fechado agora'}
-                        />
-                      )}
+                  <Td className="max-w-[240px]">
+                    <div className="flex items-center gap-2.5">
+                      <span
+                        className="flex size-[30px] shrink-0 items-center justify-center rounded-[9px] text-[11px] font-bold"
+                        style={{
+                          backgroundColor: segmentTint(lead.segment?.color),
+                          color: segmentColorHex(lead.segment?.color),
+                        }}
+                      >
+                        {initials(lead.company.name)}
+                      </span>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <p className="truncate font-medium text-foreground">{lead.company.name}</p>
+                          {lead.company.is_open_now !== null && (
+                            <span
+                              className={`size-1.5 shrink-0 rounded-full ${
+                                lead.company.is_open_now ? 'bg-success' : 'bg-muted-foreground/40'
+                              }`}
+                              title={lead.company.is_open_now ? 'Aberto agora' : 'Fechado agora'}
+                            />
+                          )}
+                        </div>
+                        {lead.company.city && (
+                          <p className="truncate text-[12px] text-muted-foreground md:hidden">
+                            {lead.company.city}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                    {lead.company.city && (
-                      <p className="truncate text-[12px] text-muted-foreground md:hidden">
-                        {lead.company.city}
-                      </p>
-                    )}
                   </Td>
                   <Td>
                     {lead.segment ? (
-                      <Badge variant="outline">{lead.segment.name}</Badge>
+                      <span
+                        className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold"
+                        style={{
+                          backgroundColor: segmentTint(lead.segment.color),
+                          color: segmentColorHex(lead.segment.color),
+                        }}
+                      >
+                        {lead.segment.name}
+                      </span>
                     ) : (
                       <span className="text-muted-foreground">—</span>
                     )}
@@ -105,14 +134,13 @@ export function LeadsTable({
                         >
                           {lead.contact.email ?? 'sem email'}
                         </span>
-                        <ContactStatusBadge contact={lead.contact} />
                       </div>
                     ) : (
                       <Badge variant="neutral">Sem contato</Badge>
                     )}
                   </Td>
                   <Td className="hidden lg:table-cell">
-                    <WebsiteCell status={lead.company.website_status} presences={lead.web_presences} />
+                    <WebsiteCell status={lead.company.website_status} />
                   </Td>
                   <Td>
                     <Badge variant={LEAD_STATUS_TONE[lead.status]}>
@@ -120,10 +148,20 @@ export function LeadsTable({
                     </Badge>
                   </Td>
                   <Td
-                    className="hidden text-muted-foreground xl:table-cell"
+                    className="hidden xl:table-cell"
                     title={formatDate(lead.last_interaction_at)}
                   >
-                    {formatRelative(lead.last_interaction_at ?? lead.collected_at)}
+                    <p className="text-muted-foreground">
+                      {formatRelative(lead.last_interaction_at ?? lead.collected_at)}
+                    </p>
+                    <p
+                      className={cn(
+                        'text-[11.5px] font-medium',
+                        lead.is_available ? 'text-success' : 'text-muted-foreground/70',
+                      )}
+                    >
+                      {lead.is_available ? 'disponível' : 'em espera'}
+                    </p>
                   </Td>
                   <Td>
                     <LeadRowActions lead={lead} />
@@ -139,7 +177,7 @@ export function LeadsTable({
 function Th({ children, className = '' }: { children?: React.ReactNode; className?: string }) {
   return (
     <th
-      className={`px-4 py-2.5 text-left text-[11px] font-medium uppercase tracking-wide text-muted-foreground ${className}`}
+      className={`px-4 py-3 text-left text-[11px] font-medium uppercase tracking-wide text-muted-foreground ${className}`}
     >
       {children}
     </th>
@@ -156,7 +194,7 @@ function Td({
   title?: string
 }) {
   return (
-    <td className={`px-4 py-2 align-middle ${className}`} title={title}>
+    <td className={`px-4 py-[var(--row-py)] align-middle ${className}`} title={title}>
       {children}
     </td>
   )
@@ -164,10 +202,10 @@ function Td({
 
 function SkeletonRow() {
   return (
-    <tr className="h-11 border-b border-border/70 last:border-0">
+    <tr className="border-b border-border/70 last:border-0">
       {Array.from({ length: 9 }).map((_, i) => (
         <Fragment key={i}>
-          <td className="px-4 py-2">
+          <td className="px-4 py-3">
             <Skeleton className="h-4 w-full max-w-[120px]" />
           </td>
         </Fragment>

@@ -41,6 +41,22 @@ export function formatRelative(value?: string | null) {
   return formatDate(value)
 }
 
+const timeOnly = new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit' })
+
+/** "hoje, 14:32" / "ontem, 21:14" / "2 dias atrás" — reads like someone
+ * describing when they last did something, which is what a history list is. */
+export function formatDayRelative(value: string) {
+  const date = new Date(value)
+  const startOfToday = new Date()
+  startOfToday.setHours(0, 0, 0, 0)
+  const days = Math.floor((startOfToday.getTime() - date.getTime()) / 86_400_000) + 1
+
+  if (days <= 0) return `hoje, ${timeOnly.format(date)}`
+  if (days === 1) return `ontem, ${timeOnly.format(date)}`
+  if (days < 30) return `${days} dias atrás`
+  return formatDate(value)
+}
+
 export function formatPercent(value: number) {
   return `${(value * 100).toFixed(1).replace('.', ',')}%`
 }

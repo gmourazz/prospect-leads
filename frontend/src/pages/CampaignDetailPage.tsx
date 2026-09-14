@@ -15,6 +15,7 @@ import {
   useCampaignTargets,
 } from '@/features/campaigns/hooks/useCampaigns'
 import { SendBatchButton } from '@/features/campaigns/components/SendBatchButton'
+import { ProcessAllButton } from '@/features/campaigns/components/ProcessAllButton'
 import { BatchResultSummary } from '@/features/campaigns/components/BatchResultSummary'
 import { MessagePreview } from '@/features/campaigns/components/MessagePreview'
 import { campaignsApi } from '@/features/campaigns/api/campaigns.api'
@@ -61,12 +62,20 @@ export function CampaignDetailPage() {
         title={campaign.name}
         description={`Template: ${campaign.template_name} · Lote de ${campaign.batch_size}`}
         actions={
-          <SendBatchButton
-            campaignId={id}
-            batchSize={campaign.batch_size}
-            pending={p.pending}
-            onResult={setLastOutcome}
-          />
+          <div className="flex items-center gap-2">
+            <ProcessAllButton
+              campaignId={id}
+              batchSize={campaign.batch_size}
+              pending={p.pending}
+              onResult={setLastOutcome}
+            />
+            <SendBatchButton
+              campaignId={id}
+              batchSize={campaign.batch_size}
+              pending={p.pending}
+              onResult={setLastOutcome}
+            />
+          </div>
         }
       />
 
