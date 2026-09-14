@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AlertTriangle, ArrowRight, Clock, Copy, ExternalLink, ImageIcon, SkipForward } from 'lucide-react'
 import { toast } from 'sonner'
 import { ApiError } from '@/lib/api-error'
@@ -24,10 +24,11 @@ import type { Lead } from '@/types/domain'
 
 /**
  * Picks the template ONCE for the whole batch, then steps through each
- * selected lead one at a time. WhatsApp itself has no bulk-send mechanism —
- * every chat still needs its own "Abrir WhatsApp" click and its own "sim,
- * enviei" — but the template choice and the queue navigation happen once,
- * instead of reopening this flow from scratch per lead.
+ * selected lead one at a time, preparing each message automatically as the
+ * queue advances. WhatsApp itself has no bulk-send mechanism — every chat
+ * still needs its own "Abrir WhatsApp" click and its own "sim, enviei" (that
+ * pair is the one place a human has to actually decide something per lead)
+ * — but nothing else about the queue requires a click anymore.
  */
 export function BulkWhatsAppDialog({
   leads,
@@ -54,6 +55,11 @@ export function BulkWhatsAppDialog({
   const [opened, setOpened] = useState(false)
   const [sentCount, setSentCount] = useState(0)
   const [autoSkipped, setAutoSkipped] = useState(0)
+  // Which lead index we've already tried to auto-prepare, so a genuine
+  // failure (provider down, network hiccup) doesn't retry itself forever —
+  // only advancing to a new index, or the person hitting "Tentar novamente"
+  // by hand, tries again.
+  const [attemptedIndex, setAttemptedIndex] = useState(-1)
 
   const list = (templates?.data ?? []).filter((t) => t.channel === 'whatsapp')
   const selected = list.find((t) => t.id === templateId)
@@ -68,6 +74,7 @@ export function BulkWhatsAppDialog({
     setOpened(false)
     setSentCount(0)
     setAutoSkipped(0)
+    setAttemptedIndex(-1)
   }
 
   function close() {
@@ -101,6 +108,19 @@ export function BulkWhatsAppDialog({
       },
     )
   }
+
+  // Preparing used to be its own click; now it fires as soon as there's a
+  // template and a current lead with nothing prepared yet, so the person
+  // only has to decide "abrir" and "enviei" per lead. It does not open
+  // WhatsApp itself, so it doesn't touch the pacing guard — only the actual
+  // chat-opening click below does.
+  useEffect(() => {
+    if (!selected?.version_id || !current || prep || pacing.blocked) return
+    if (attemptedIndex === index) return
+    setAttemptedIndex(index)
+    handlePrepare()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected, current, prep, pacing.blocked, index, attemptedIndex])
 
   function handleOpenWhatsApp() {
     if (!prep) return
@@ -210,9 +230,18 @@ export function BulkWhatsAppDialog({
             <>
               <p className="text-[13px] font-medium">{current.company.name}</p>
               {!prep ? (
-                <Button onClick={handlePrepare} loading={prepare.isPending}>
-                  Preparar mensagem
-                </Button>
+                prepare.isError ? (
+                  <div className="space-y-2">
+                    <p className="text-[12.5px] text-danger">
+                      Não deu para preparar a mensagem agora.
+                    </p>
+                    <Button variant="outline" onClick={handlePrepare}>
+                      Tentar novamente
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="text-[12.5px] text-muted-foreground">Preparando mensagem…</p>
+                )
               ) : (
                 <>
                   <div className="rounded-md border border-border bg-surface p-3">
