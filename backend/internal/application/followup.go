@@ -65,12 +65,8 @@ func (s *OutreachService) PrepareFollowup(ctx context.Context, leadID, templateV
 	if lead.Company.State != nil {
 		state = *lead.Company.State
 	}
-	signature, err := s.settings.EmailSignature(ctx)
-	if err != nil {
-		return FollowupPreparation{}, err
-	}
-	rendered := withSignature(outreach.Render(details.Body,
-		outreach.BuildVars(lead.Company.Name, segmentName, city, state)), signature)
+	rendered := outreach.Render(details.Body,
+		outreach.BuildVars(lead.Company.Name, segmentName, city, state))
 
 	dispatchID, err := s.repo.OpenWhatsAppFollowup(ctx, leadID,
 		*lead.Contact.ContactPointID, lead.Company.ID, templateVersionID)
