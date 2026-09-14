@@ -30,6 +30,7 @@ export function LeadsPage() {
   const [campaignOpen, setCampaignOpen] = useState(false)
   const [whatsappOpen, setWhatsappOpen] = useState(false)
   const [whatsappQueue, setWhatsappQueue] = useState<Lead[]>([])
+  const [whatsappSkipped, setWhatsappSkipped] = useState(0)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [density, setDensity] = useLeadDensity()
   const [exporting, setExporting] = useState(false)
@@ -195,6 +196,7 @@ export function LeadsPage() {
                 // leads query, which can reorder/refetch the current page
                 // and silently shrink a queue that stayed wired to live data.
                 setWhatsappQueue(selectedForWhatsApp)
+                setWhatsappSkipped(selected.size - selectedForWhatsApp.length)
                 setWhatsappOpen(true)
               }
             : undefined
@@ -212,6 +214,7 @@ export function LeadsPage() {
         open={whatsappOpen}
         onOpenChange={setWhatsappOpen}
         leads={whatsappQueue}
+        skipped={whatsappSkipped}
       />
     </div>
   )

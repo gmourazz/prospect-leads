@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { ArrowRight, Copy, ExternalLink, ImageIcon, SkipForward } from 'lucide-react'
+import { AlertTriangle, ArrowRight, Copy, ExternalLink, ImageIcon, SkipForward } from 'lucide-react'
 import { toast } from 'sonner'
+import { ApiError } from '@/lib/api-error'
 import {
   Dialog,
   DialogContent,
@@ -29,10 +30,14 @@ import type { Lead } from '@/types/domain'
  */
 export function BulkWhatsAppDialog({
   leads,
+  skipped = 0,
   open,
   onOpenChange,
 }: {
   leads: Lead[]
+  /** Selected leads the queue could not take, so the count on screen matches
+   *  what the user actually ticked instead of silently shrinking. */
+  skipped?: number
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
@@ -46,11 +51,13 @@ export function BulkWhatsAppDialog({
   const [prep, setPrep] = useState<FollowupPreparation | null>(null)
   const [opened, setOpened] = useState(false)
   const [sentCount, setSentCount] = useState(0)
+  const [autoSkipped, setAutoSkipped] = useState(0)
 
   const list = (templates?.data ?? []).filter((t) => t.channel === 'whatsapp')
   const selected = list.find((t) => t.id === templateId)
   const current = leads[index]
   const done = index >= leads.length
+  const inProgress = Boolean(selected) && !done
 
   function reset() {
     setTemplateId('')
@@ -58,6 +65,7 @@ export function BulkWhatsAppDialog({
     setPrep(null)
     setOpened(false)
     setSentCount(0)
+    setAutoSkipped(0)
   }
 
   function close() {
@@ -75,7 +83,20 @@ export function BulkWhatsAppDialog({
     if (!selected?.version_id || !current) return
     prepare.mutate(
       { leadId: current.id, templateVersionId: selected.version_id },
-      { onSuccess: setPrep },
+      {
+        onSuccess: setPrep,
+        // A contact that already has a WhatsApp follow-up can never be
+        // prepared again — the per-contact unique index forbids a second one.
+        // Leaving the queue parked on it would strand everyone behind it, so
+        // move on instead and report the count at the end.
+        onError: (error) => {
+          const code = error instanceof ApiError ? error.code : ''
+          if (code === 'already_contacted' || code === 'contact_suppressed') {
+            setAutoSkipped((n) => n + 1)
+            advance()
+          }
+        },
+      },
     )
   }
 
@@ -111,7 +132,14 @@ export function BulkWhatsAppDialog({
 
   return (
     <Dialog open={open} onOpenChange={(next) => (next ? onOpenChange(true) : close())}>
-      <DialogContent className="max-w-lg">
+      <DialogContent
+        className="max-w-lg"
+        // Coming back from the WhatsApp tab, a stray click or Esc used to wipe
+        // the queue and the chosen template. Mid-queue the only ways out are
+        // now the explicit "Cancelar tudo" and the X.
+        onInteractOutside={(e) => inProgress && e.preventDefault()}
+        onEscapeKeyDown={(e) => inProgress && e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle>
             Chamar no WhatsApp {leads.length > 1 && `· ${Math.min(index + 1, leads.length)} de ${leads.length}`}
@@ -119,6 +147,15 @@ export function BulkWhatsAppDialog({
         </DialogHeader>
 
         <div className="space-y-4 px-6 pb-2">
+          {skipped > 0 && (
+            <p className="flex items-start gap-1.5 rounded-md bg-warning-subtle px-3 py-2 text-[12px] text-warning">
+              <AlertTriangle className="mt-px size-3.5 shrink-0" />
+              <span>
+                {skipped} lead(s) que você marcou ficaram de fora: sem telefone, na lista de
+                não contatar, ou selecionados em outra página da lista.
+              </span>
+            </p>
+          )}
           {!selected ? (
             <>
               <p className="text-[12.5px] text-muted-foreground">
@@ -144,9 +181,17 @@ export function BulkWhatsAppDialog({
               )}
             </>
           ) : done ? (
-            <p className="py-6 text-center text-[13.5px]">
-              Pronto — {sentCount} de {leads.length} enviada{sentCount === 1 ? '' : 's'}.
-            </p>
+            <div className="space-y-1.5 py-6 text-center">
+              <p className="text-[13.5px]">
+                Pronto — {sentCount} de {leads.length} enviada{sentCount === 1 ? '' : 's'}.
+              </p>
+              {autoSkipped > 0 && (
+                <p className="text-[12px] text-muted-foreground">
+                  {autoSkipped} pulado(s) automaticamente: já tinham recebido WhatsApp ou
+                  estão na lista de não contatar.
+                </p>
+              )}
+            </div>
           ) : (
             <>
               <p className="text-[13px] font-medium">{current.company.name}</p>
