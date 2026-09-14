@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formatNumber } from '@/lib/format'
 
-const PAGE_SIZES = [25, 50, 100, 200]
+const PAGE_SIZES = [20, 25, 50, 100, 200]
 
 export function Pagination({
   page,

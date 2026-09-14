@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { AlertTriangle, ArrowRight, Copy, ExternalLink, ImageIcon, SkipForward } from 'lucide-react'
+import { AlertTriangle, ArrowRight, Clock, Copy, ExternalLink, ImageIcon, SkipForward } from 'lucide-react'
 import { toast } from 'sonner'
 import { ApiError } from '@/lib/api-error'
+import { useWhatsAppPacing } from '../hooks/useWhatsAppPacing'
 import {
   Dialog,
   DialogContent,
@@ -45,6 +46,7 @@ export function BulkWhatsAppDialog({
   const prepare = usePrepareFollowup()
   const confirm = useConfirmFollowup()
   const cancel = useCancelFollowup()
+  const pacing = useWhatsAppPacing()
 
   const [templateId, setTemplateId] = useState('')
   const [index, setIndex] = useState(0)
@@ -104,6 +106,7 @@ export function BulkWhatsAppDialog({
     if (!prep) return
     window.open(prep.whatsapp_link, '_blank', 'noopener')
     setOpened(true)
+    pacing.registerOpen()
   }
 
   function handleConfirm() {
@@ -192,6 +195,17 @@ export function BulkWhatsAppDialog({
                 </p>
               )}
             </div>
+          ) : pacing.blocked && !prep ? (
+            <div className="space-y-2 rounded-md border border-warning-subtle bg-warning-subtle p-4 text-center">
+              <p className="flex items-center justify-center gap-1.5 text-[13px] font-medium text-warning">
+                <Clock className="size-4" /> Pausa de segurança
+              </p>
+              <p className="text-[12.5px] text-muted-foreground">
+                {pacing.batchSize} conversas abertas seguidas — pausando por{' '}
+                {formatRemaining(pacing.remainingMs)} pra não arriscar o WhatsApp restringir o
+                número por atividade em massa.
+              </p>
+            </div>
           ) : (
             <>
               <p className="text-[13px] font-medium">{current.company.name}</p>
@@ -254,4 +268,11 @@ export function BulkWhatsAppDialog({
       </DialogContent>
     </Dialog>
   )
+}
+
+function formatRemaining(ms: number) {
+  const totalSeconds = Math.max(0, Math.ceil(ms / 1000))
+  const minutes = Math.floor(totalSeconds / 60)
+  const seconds = totalSeconds % 60
+  return `${minutes}:${String(seconds).padStart(2, '0')}`
 }
