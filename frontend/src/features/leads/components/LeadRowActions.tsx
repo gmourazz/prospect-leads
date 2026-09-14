@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import {
   Eye,
+  MessageCircle,
   MoreHorizontal,
   RotateCcw,
   ShieldBan,
@@ -26,12 +27,14 @@ import {
 } from '../hooks/useLeads'
 import { RecontactDialog } from './RecontactDialog'
 import { LeadDetailDialog } from './LeadDetailDialog'
+import { SendWhatsAppDialog } from './SendWhatsAppDialog'
 
 export function LeadRowActions({ lead }: { lead: Lead }) {
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [suppressOpen, setSuppressOpen] = useState(false)
   const [recontactOpen, setRecontactOpen] = useState(false)
   const [detailOpen, setDetailOpen] = useState(false)
+  const [whatsappOpen, setWhatsappOpen] = useState(false)
   const [note, setNote] = useState('')
 
   const deleteLead = useDeleteLead()
@@ -54,6 +57,12 @@ export function LeadRowActions({ lead }: { lead: Lead }) {
             <Eye />
             Ver lead
           </DropdownMenuItem>
+          {contactId && !lead.contact.email && !lead.contact.is_suppressed && (
+            <DropdownMenuItem onSelect={() => setWhatsappOpen(true)}>
+              <MessageCircle />
+              Chamar no WhatsApp
+            </DropdownMenuItem>
+          )}
           {contactId && alreadyContacted && !lead.contact.is_suppressed && (
             <DropdownMenuItem onSelect={() => setRecontactOpen(true)}>
               <RotateCcw />
@@ -81,6 +90,8 @@ export function LeadRowActions({ lead }: { lead: Lead }) {
       </DropdownMenu>
 
       <LeadDetailDialog open={detailOpen} onOpenChange={setDetailOpen} lead={lead} />
+
+      <SendWhatsAppDialog open={whatsappOpen} onOpenChange={setWhatsappOpen} lead={lead} />
 
       <ConfirmDialog
         open={deleteOpen}

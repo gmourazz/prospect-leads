@@ -13,7 +13,7 @@ export function SegmentedControl<T extends string>({
   className?: string
 }) {
   return (
-    <div className={cn('inline-flex items-center gap-0.5 rounded-full bg-muted p-1', className)}>
+    <div className={cn('flex min-w-0 flex-wrap items-center gap-0.5 rounded-full bg-muted p-1', className)}>
       {options.map((o) => (
         <button
           key={o.value}

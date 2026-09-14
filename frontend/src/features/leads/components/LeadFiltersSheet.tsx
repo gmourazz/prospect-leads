@@ -266,7 +266,7 @@ function Field({
   children: React.ReactNode
 }) {
   return (
-    <div className="space-y-2">
+    <div className="min-w-0 space-y-2">
       <p className="flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-[0.1em] text-muted-foreground">
         <Icon className="size-3" />
         {label}
