@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { MailSearch, Send, Sheet } from 'lucide-react'
+import { MailSearch, RefreshCw, Send, Sheet } from 'lucide-react'
 import { toast } from 'sonner'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { ErrorState } from '@/components/common/ErrorState'
@@ -25,7 +25,7 @@ import { WEBSITE_STATUS_LABELS, type Lead } from '@/types/domain'
 
 export function LeadsPage() {
   const { filters, setFilter, reset, activeCount } = useLeadFilters()
-  const { data, isLoading, isError, error, refetch } = useLeads(filters)
+  const { data, isLoading, isError, error, refetch, isFetching } = useLeads(filters)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [newLeadOpen, setNewLeadOpen] = useState(false)
   const [campaignOpen, setCampaignOpen] = useState(false)
@@ -114,6 +114,15 @@ export function LeadsPage() {
         }
         actions={
           <>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => refetch()}
+              loading={isFetching}
+            >
+              <RefreshCw />
+              Atualizar
+            </Button>
             <Button
               variant="ghost"
               size="sm"
