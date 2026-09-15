@@ -39,7 +39,7 @@ export function QuickFilters({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-nowrap items-center gap-1.5">
       {FILTERS.map((f) => {
         const active = (value ?? '') === f.value
         const count = countFor(f.value)
@@ -48,7 +48,7 @@ export function QuickFilters({
             key={f.value}
             onClick={() => onChange(f.value || undefined)}
             className={cn(
-              'flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-4 py-2 text-[13.5px] font-semibold transition-colors [&_svg]:size-3.5 [&_svg]:shrink-0',
+              'flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-2.5 py-1.5 text-[12.5px] font-semibold transition-colors [&_svg]:size-3 [&_svg]:shrink-0',
               active
                 ? 'border-[#7c3aed] bg-primary/[0.16] text-primary'
                 : 'border-transparent bg-muted text-muted-foreground hover:text-foreground',

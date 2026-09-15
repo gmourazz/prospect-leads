@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { ArrowUpDown, Bookmark, BookmarkPlus, LayoutList, RefreshCw, Rows3, Search, Plus, RotateCcw, X } from 'lucide-react'
+import { Bookmark, BookmarkPlus, LayoutList, RefreshCw, Rows3, Search, Plus, RotateCcw, X } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -155,20 +155,19 @@ export function LeadsToolbar({
         </Button>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3 px-4 pb-4">
+      <div className="flex flex-nowrap items-center gap-2 px-4 pb-4">
         <QuickFilters
           value={filters.contact_state}
           counts={counts}
           onChange={(v) => onSetFilter('contact_state', v)}
         />
 
-        <div className="flex items-center gap-3">
+        <div className="flex shrink-0 items-center gap-2">
           <Select
             value={filters.sort ?? '__default__'}
             onValueChange={(v) => onSetFilter('sort', v === '__default__' ? undefined : v)}
           >
-            <SelectTrigger className="h-10 w-[168px] rounded-xl border-transparent bg-muted">
-              <ArrowUpDown className="size-3.5 shrink-0 text-muted-foreground" />
+            <SelectTrigger className="h-9 w-[128px] rounded-xl border-transparent bg-muted px-2.5 text-[12.5px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -179,8 +178,7 @@ export function LeadsToolbar({
           </Select>
 
           <Select value={density} onValueChange={(v) => onDensityChange(v as Density)}>
-            <SelectTrigger className="h-10 w-[168px] rounded-xl border-transparent bg-muted">
-              <Rows3 className="size-3.5 shrink-0 text-muted-foreground" />
+            <SelectTrigger className="h-9 w-[110px] rounded-xl border-transparent bg-muted px-2.5 text-[12.5px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
