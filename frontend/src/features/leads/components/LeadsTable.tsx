@@ -60,7 +60,6 @@ export function LeadsTable({
             <Th className="w-10" />
             <Th>Empresa</Th>
             <Th>Segmento</Th>
-            <Th>Cidade</Th>
             <Th>Contato</Th>
             <Th>Site</Th>
             <Th>Status</Th>
@@ -131,9 +130,6 @@ export function LeadsTable({
                     ) : (
                       <span className="text-muted-foreground">—</span>
                     )}
-                  </Td>
-                  <Td className="hidden text-muted-foreground md:table-cell">
-                    {lead.company.city ? `${lead.company.city}/${lead.company.state ?? ''}` : '—'}
                   </Td>
                   <Td>
                     {lead.contact.contact_point_id ? (
@@ -260,7 +256,7 @@ function ChannelPill({
 function SkeletonRow() {
   return (
     <tr className="border-b border-border/70 last:border-0">
-      {Array.from({ length: 10 }).map((_, i) => (
+      {Array.from({ length: 9 }).map((_, i) => (
         <Fragment key={i}>
           <td className="px-4 py-3">
             <Skeleton className="h-4 w-full max-w-[120px]" />
