@@ -1,10 +1,19 @@
-import { ArrowUpDown, LayoutList, Rows3, Search, Plus } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { ArrowUpDown, Bookmark, LayoutList, RefreshCw, Rows3, Search, Plus, RotateCcw, Star, X } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { SegmentedControl } from '@/components/common/SegmentedControl'
 import { QuickFilters } from './QuickFilters'
 import { LeadFiltersSheet } from './LeadFiltersSheet'
+import { useSavedViews } from '../hooks/useSavedViews'
 import type { LeadCounts, LeadFilters } from '@/types/domain'
 import type { Density } from '../hooks/useLeadDensity'
 
@@ -29,6 +38,8 @@ export function LeadsToolbar({
   onNewLead,
   density,
   onDensityChange,
+  onRefresh,
+  refreshing,
 }: {
   filters: LeadFilters
   counts: LeadCounts | undefined
@@ -38,7 +49,12 @@ export function LeadsToolbar({
   onNewLead: () => void
   density: Density
   onDensityChange: (density: Density) => void
+  onRefresh: () => void
+  refreshing: boolean
 }) {
+  const { views, save, remove } = useSavedViews()
+  const navigate = useNavigate()
+
   return (
     <div className="rounded-2xl border border-border bg-surface">
       <div className="flex flex-wrap items-center gap-3.5 p-4">
@@ -70,9 +86,20 @@ export function LeadsToolbar({
         <SegmentedControl options={DENSITY_OPTIONS} value={density} onChange={onDensityChange} />
 
         <Button
+          variant="ghost"
+          size="sm"
+          className="ml-auto h-10 rounded-xl"
+          onClick={onRefresh}
+          loading={refreshing}
+        >
+          <RefreshCw />
+          Atualizar
+        </Button>
+
+        <Button
           variant="outline"
           size="sm"
-          className="ml-auto h-10 rounded-xl border-dashed border-primary/40 text-primary hover:bg-primary/5"
+          className="h-10 rounded-xl border-dashed border-primary/40 text-primary hover:bg-primary/5"
           onClick={onNewLead}
         >
           <Plus />
@@ -80,18 +107,84 @@ export function LeadsToolbar({
         </Button>
       </div>
 
-      <div className="px-4 pb-4">
+      <div className="flex flex-wrap items-center gap-3 px-4 pb-4">
         <QuickFilters
           value={filters.contact_state}
           counts={counts}
           onChange={(v) => onSetFilter('contact_state', v)}
         />
+
+        <div className="ml-auto flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={activeCount === 0}
+            onClick={() => {
+              onApplyFilters({
+                segment_id: undefined, city: undefined, state: undefined,
+                status: undefined, website_status: undefined, open_now: undefined,
+                has_email: undefined, contact_state: undefined, q: undefined,
+              })
+            }}
+          >
+            <RotateCcw />
+            Limpar tudo
+          </Button>
+
+          {views.length > 0 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Bookmark />
+                  Visões
+                  <span className="tabular text-muted-foreground">{views.length}</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Visões salvas</DropdownMenuLabel>
+                {views.map((v) => (
+                  <DropdownMenuItem
+                    key={v.name}
+                    onSelect={() => navigate(`/leads${v.search}`)}
+                    className="justify-between"
+                  >
+                    <span className="truncate">{v.name}</span>
+                    <button
+                      type="button"
+                      aria-label={`Remover visão ${v.name}`}
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        remove(v.name)
+                      }}
+                      className="shrink-0 rounded p-0.5 text-muted-foreground hover:text-danger"
+                    >
+                      <X className="size-3.5" />
+                    </button>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+
+          <Button
+            variant="outline"
+            size="sm"
+            className="border-primary/40 text-primary hover:bg-primary/5"
+            onClick={() => {
+              const name = window.prompt('Nome da visão salva:')
+              if (name) save(name, window.location.search)
+            }}
+          >
+            <Star />
+            Salvar visão
+          </Button>
+        </div>
       </div>
 
       <LeadFiltersSheet
         filters={filters}
         onApply={onApplyFilters}
-        activeCount={activeCount}
       />
     </div>
   )

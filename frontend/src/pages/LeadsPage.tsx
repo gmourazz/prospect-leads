@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { MailSearch, RefreshCw, Send, Sheet } from 'lucide-react'
+import { MailSearch, Send, Sheet } from 'lucide-react'
 import { toast } from 'sonner'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { ErrorState } from '@/components/common/ErrorState'
@@ -116,15 +116,6 @@ export function LeadsPage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => refetch()}
-              loading={isFetching}
-            >
-              <RefreshCw />
-              Atualizar
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
               onClick={() => enrichEmails.mutate(undefined)}
               loading={enrichEmails.isPending}
               disabled={enrichProgress?.running}
@@ -167,6 +158,8 @@ export function LeadsPage() {
           onNewLead={() => setNewLeadOpen(true)}
           density={density}
           onDensityChange={setDensity}
+          onRefresh={refetch}
+          refreshing={isFetching}
         />
       </div>
 

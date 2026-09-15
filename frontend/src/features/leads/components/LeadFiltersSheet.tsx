@@ -1,7 +1,5 @@
-import { useNavigate } from 'react-router-dom'
 import {
   type LucideIcon,
-  Bookmark,
   CalendarClock,
   Check,
   Globe,
@@ -9,26 +7,14 @@ import {
   Mail,
   MailX,
   MapPin,
-  RotateCcw,
-  Star,
   Tag,
   Tags,
   Timer,
-  X,
 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import { useSegments } from '@/features/segments/hooks/useSegments'
 import { useStates } from '@/features/sourcing/hooks/useCities'
 import { useCities } from '../hooks/useLeads'
-import { useSavedViews } from '../hooks/useSavedViews'
 import { formatNumber } from '@/lib/format'
 import { segmentColorHex } from '@/lib/segment-colors'
 import type { LeadFilters } from '@/types/domain'
@@ -60,17 +46,13 @@ const WINDOW_OPTIONS = [
 export function LeadFiltersSheet({
   filters,
   onApply,
-  activeCount,
 }: {
   filters: LeadFilters
   onApply: (patch: Partial<LeadFilters>) => void
-  activeCount: number
 }) {
   const { data: segments } = useSegments()
   const { data: cities } = useCities()
   const { data: states } = useStates()
-  const { views, save, remove } = useSavedViews()
-  const navigate = useNavigate()
 
   const activeSegments = segments?.data.filter((s) => s.is_active) ?? []
 
@@ -184,77 +166,9 @@ export function LeadFiltersSheet({
         </Field>
       </div>
 
-      <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
-        <p className="text-[12.5px] text-muted-foreground">
-          Combine filtros e salve como visão para reusar na próxima campanha.
-        </p>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled={activeCount === 0}
-            onClick={() => {
-              onApply({
-                segment_id: undefined, city: undefined, state: undefined,
-                status: undefined, website_status: undefined, open_now: undefined,
-                has_email: undefined, contact_state: undefined, q: undefined,
-              })
-            }}
-          >
-            <RotateCcw />
-            Limpar tudo
-          </Button>
-
-          {views.length > 0 && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <Bookmark />
-                  Visões
-                  <span className="tabular text-muted-foreground">{views.length}</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Visões salvas</DropdownMenuLabel>
-                {views.map((v) => (
-                  <DropdownMenuItem
-                    key={v.name}
-                    onSelect={() => navigate(`/leads${v.search}`)}
-                    className="justify-between"
-                  >
-                    <span className="truncate">{v.name}</span>
-                    <button
-                      type="button"
-                      aria-label={`Remover visão ${v.name}`}
-                      onPointerDown={(e) => e.stopPropagation()}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        remove(v.name)
-                      }}
-                      className="shrink-0 rounded p-0.5 text-muted-foreground hover:text-danger"
-                    >
-                      <X className="size-3.5" />
-                    </button>
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-
-          <Button
-            variant="outline"
-            size="sm"
-            className="border-primary/40 text-primary hover:bg-primary/5"
-            onClick={() => {
-              const name = window.prompt('Nome da visão salva:')
-              if (name) save(name, window.location.search)
-            }}
-          >
-            <Star />
-            Salvar visão
-          </Button>
-        </div>
-      </div>
+      <p className="mt-5 border-t border-border pt-4 text-[12.5px] text-muted-foreground">
+        Combine filtros e salve como visão para reusar na próxima campanha.
+      </p>
     </div>
   )
 }
