@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { ArrowUpDown, Bookmark, LayoutList, RefreshCw, Rows3, Search, Plus, RotateCcw, Star, X } from 'lucide-react'
+import { ArrowUpDown, Bookmark, BookmarkPlus, LayoutList, RefreshCw, Rows3, Search, Plus, RotateCcw, X } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -130,14 +130,14 @@ export function LeadsToolbar({
             if (name) save(name, window.location.search)
           }}
         >
-          <Star />
+          <BookmarkPlus />
           Salvar visão
         </Button>
 
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
-          className="ml-auto h-10 rounded-xl"
+          className="ml-auto h-10 rounded-xl border-info/40 bg-info-subtle text-info hover:bg-info-subtle/70"
           onClick={onRefresh}
           loading={refreshing}
         >
@@ -156,14 +156,14 @@ export function LeadsToolbar({
         </Button>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3 px-4 pb-4">
+      <div className="flex flex-nowrap items-center gap-3 overflow-x-auto px-4 pb-4">
         <QuickFilters
           value={filters.contact_state}
           counts={counts}
           onChange={(v) => onSetFilter('contact_state', v)}
         />
 
-        <div className="ml-auto flex items-center gap-3">
+        <div className="ml-auto flex shrink-0 items-center gap-3">
           <Select
             value={filters.sort ?? '__default__'}
             onValueChange={(v) => onSetFilter('sort', v === '__default__' ? undefined : v)}
