@@ -1,15 +1,27 @@
 import { Fragment } from 'react'
+import { AlertTriangle, Mail, MessageCircle } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/cn'
 import { formatDate, formatRelative } from '@/lib/format'
 import { initials, segmentColorHex, segmentTint } from '@/lib/segment-colors'
 import { LEAD_STATUS_LABELS, type Lead } from '@/types/domain'
 import { LEAD_STATUS_TONE } from '../model/lead-status'
+import { CHANNEL_LABELS } from '../model/contact-badge'
 import type { Density } from '../hooks/useLeadDensity'
 import { WebsiteCell } from './WebsiteCell'
 import { LeadRowActions } from './LeadRowActions'
+
+const CHANNEL_ICON = { email: Mail, whatsapp: MessageCircle } as const
+
+const ERROR_LABELS: Record<string, string> = {
+  not_on_whatsapp: 'número sem WhatsApp',
+  blocked: 'número bloqueado',
+  provider_unavailable: 'provedor indisponível',
+  rate_limited: 'limite de envio atingido',
+}
 
 export function LeadsTable({
   leads,
@@ -134,6 +146,13 @@ export function LeadsTable({
                         >
                           {lead.contact.email ?? 'sem email'}
                         </span>
+                        {lead.contact.last_channel && (
+                          <ChannelPill
+                            channel={lead.contact.last_channel}
+                            hasError={lead.contact.has_error}
+                            errorCode={lead.contact.last_error_code}
+                          />
+                        )}
                       </div>
                     ) : (
                       <Badge variant="neutral">Sem contato</Badge>
@@ -197,6 +216,40 @@ function Td({
     <td className={`px-4 py-[var(--row-py)] align-middle ${className}`} title={title}>
       {children}
     </td>
+  )
+}
+
+function ChannelPill({
+  channel,
+  hasError,
+  errorCode,
+}: {
+  channel: 'email' | 'whatsapp'
+  hasError: boolean
+  errorCode: string | null
+}) {
+  const Icon = hasError ? AlertTriangle : CHANNEL_ICON[channel]
+  const pill = (
+    <span
+      className={cn(
+        'inline-flex w-fit items-center gap-1 rounded-full border px-1.5 py-px text-[10.5px] font-medium [&_svg]:size-2.5',
+        hasError
+          ? 'border-danger/30 bg-danger-subtle text-danger'
+          : 'border-border bg-muted text-muted-foreground',
+      )}
+    >
+      <Icon />
+      {CHANNEL_LABELS[channel] ?? channel}
+    </span>
+  )
+  if (!hasError) return pill
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{pill}</TooltipTrigger>
+      <TooltipContent side="top">
+        {errorCode ? ERROR_LABELS[errorCode] ?? errorCode : 'falhou'}
+      </TooltipContent>
+    </Tooltip>
   )
 }
 

@@ -52,6 +52,12 @@ type ContactState struct {
 	LastContactedAt   *time.Time `json:"last_contacted_at"`
 	IsSuppressed      bool       `json:"is_suppressed"`
 	SuppressionReason *string    `json:"suppression_reason"`
+	// LastChannel/HasError/LastErrorCode describe the most recent dispatch
+	// attempt regardless of outcome — unlike Status, which only ever reflects
+	// a successful send (contact_point_stats never hears about a failure).
+	LastChannel   *string `json:"last_channel"`
+	HasError      bool    `json:"has_error"`
+	LastErrorCode *string `json:"last_error_code"`
 }
 
 type WebPresence struct {
@@ -106,6 +112,7 @@ type LeadCounts struct {
 	Suppressed int `json:"suppressed"`
 	NoPhone    int `json:"no_phone"`
 	NoWebsite  int `json:"no_website"`
+	Failed     int `json:"failed"`
 }
 
 // LeadFilters mirrors the query string of GET /leads.

@@ -1,4 +1,4 @@
-import { Ban, CheckCheck, Clock, MessageCircleReply, Users } from 'lucide-react'
+import { AlertTriangle, Ban, CheckCheck, Clock, MessageCircleReply, Users } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { formatNumber } from '@/lib/format'
 import type { LeadCounts } from '@/types/domain'
@@ -8,6 +8,7 @@ const FILTERS = [
   { value: 'never', label: 'Não contatados', icon: Clock },
   { value: 'contacted', label: 'Já contatados', icon: CheckCheck },
   { value: 'replied', label: 'Responderam', icon: MessageCircleReply },
+  { value: 'failed', label: 'Falharam', icon: AlertTriangle },
   { value: 'suppressed', label: 'Bloqueados', icon: Ban },
 ] as const
 
@@ -31,6 +32,8 @@ export function QuickFilters({
         return counts.contacted
       case 'replied':
         return counts.replied
+      case 'failed':
+        return counts.failed
       case 'suppressed':
         return counts.suppressed
       default:

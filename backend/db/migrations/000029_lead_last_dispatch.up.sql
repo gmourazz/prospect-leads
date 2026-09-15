@@ -1,0 +1,70 @@
+-- lead_board couldn't answer two things the WhatsApp agent made visible for
+-- the first time: which channel actually reached someone, and whose last
+-- attempt just failed (wrong number, no WhatsApp, provider down). A failed
+-- send never writes a contact_event — the trigger that updates
+-- contact_point_stats only fires on 'message_sent' — so a business whose
+-- only attempt blew up looks identical to one nobody ever tried, unless the
+-- view says otherwise itself.
+DROP VIEW IF EXISTS lead_board;
+CREATE VIEW lead_board AS
+SELECT
+  l.id                      AS lead_id,
+  l.status                  AS lead_status,
+  l.notes,
+  l.collected_at,
+  l.last_interaction_at,
+  c.id                      AS company_id,
+  c.trade_name              AS company_name,
+  c.cnpj,
+  c.city, c.state, c.city_key,
+  c.website_status,
+  c.opening_hours,
+  business_is_open(c.opening_hours, now()) AS is_open_now,
+  s.id AS segment_id, s.name AS segment_name, s.color AS segment_color,
+  cp.id                     AS contact_point_id,
+  cp.phone_display,
+  cp.phone_e164,
+  cp.email,
+  COALESCE(
+    (SELECT array_agg(e.email ORDER BY e.is_primary DESC, e.email)
+       FROM contact_point_emails e
+      WHERE e.contact_point_id = cp.id),
+    '{}'
+  )                         AS emails,
+  cp.line_type,
+  COALESCE(st.contact_count, 0)          AS contact_count,
+  st.first_contacted_at,
+  st.last_contacted_at,
+  COALESCE(st.status, 'never_contacted') AS contact_state,
+  -- Channel and outcome of the most recent dispatch attempt, win or lose —
+  -- independent of contact_point_stats, which only ever hears about wins.
+  ld.channel                             AS last_channel,
+  (ld.status = 'failed')                 AS has_error,
+  ld.error_code                          AS last_error_code,
+  (sup.id IS NOT NULL)                   AS is_suppressed,
+  sup.reason                             AS suppression_reason,
+  (
+    cp.id IS NOT NULL
+    AND cp.email IS NOT NULL
+    AND sup.id IS NULL
+    AND COALESCE(st.contact_count, 0) = 0
+    AND NOT EXISTS (
+      SELECT 1 FROM message_dispatches d
+       WHERE d.contact_point_id = cp.id
+         AND d.status IN ('queued', 'reserved', 'sending', 'opened', 'sent')
+    )
+  ) AS is_available
+FROM leads l
+JOIN companies c            ON c.id = l.company_id
+LEFT JOIN segments s        ON s.id = COALESCE(l.segment_id, c.segment_id)
+LEFT JOIN contact_points cp ON cp.id = l.primary_contact_point_id
+LEFT JOIN contact_point_stats st ON st.contact_point_id = cp.id
+LEFT JOIN suppressions sup  ON sup.contact_point_id = cp.id AND sup.revoked_at IS NULL
+LEFT JOIN LATERAL (
+  SELECT d.channel, d.status, d.error_code
+    FROM message_dispatches d
+   WHERE d.contact_point_id = cp.id
+   ORDER BY d.updated_at DESC
+   LIMIT 1
+) ld ON cp.id IS NOT NULL
+WHERE l.deleted_at IS NULL AND c.deleted_at IS NULL;

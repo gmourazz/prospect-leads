@@ -18,6 +18,11 @@ export interface ContactState {
   last_contacted_at: string | null
   is_suppressed: boolean
   suppression_reason: string | null
+  // Most recent dispatch attempt, win or lose — unlike `status`, which only
+  // ever reflects a successful send (a failed attempt never touches it).
+  last_channel: 'email' | 'whatsapp' | null
+  has_error: boolean
+  last_error_code: string | null
 }
 
 export interface WebPresence {
@@ -58,6 +63,7 @@ export interface LeadCounts {
   suppressed: number
   no_phone: number
   no_website: number
+  failed: number
 }
 
 export interface LeadFilters {

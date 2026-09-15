@@ -18,5 +18,13 @@ export function contactBadge(contact: ContactState): ContactBadgeSpec {
   if (contact.status === 'replied') return { label: 'Respondeu', tone: 'warning' }
   if (contact.contact_count > 1) return { label: `${contact.contact_count} contatos`, tone: 'success' }
   if (contact.contact_count === 1) return { label: 'Enviado', tone: 'success' }
+  // A failed dispatch never bumps contact_count — without this, a number
+  // with no WhatsApp looks identical to one nobody ever tried.
+  if (contact.has_error) return { label: 'Falhou', tone: 'danger' }
   return { label: 'Disponível', tone: 'neutral' }
+}
+
+export const CHANNEL_LABELS: Record<string, string> = {
+  email: 'Email',
+  whatsapp: 'WhatsApp',
 }

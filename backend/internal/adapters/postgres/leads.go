@@ -76,6 +76,8 @@ func buildFilter(f domain.LeadFilters) (string, []any) {
 		clauses = append(clauses, "contact_state = 'replied'")
 	case "suppressed":
 		clauses = append(clauses, "is_suppressed")
+	case "failed":
+		clauses = append(clauses, "has_error")
 	}
 
 	if len(clauses) == 0 {
@@ -91,6 +93,7 @@ const leadSelect = `
 	       segment_id, segment_name, segment_color,
 	       contact_point_id, phone_display, phone_e164, email, emails, line_type,
 	       contact_count, first_contacted_at, last_contacted_at, contact_state,
+	       last_channel, has_error, last_error_code,
 	       is_suppressed, suppression_reason, is_available
 	  FROM lead_board`
 
@@ -137,6 +140,7 @@ func (r *LeadRepo) List(ctx context.Context, f domain.LeadFilters) ([]domain.Lea
 			&l.Contact.ContactPointID, &l.Contact.PhoneDisplay, &l.Contact.PhoneE164, &l.Contact.Email,
 			&l.Contact.Emails, &l.Contact.LineType, &l.Contact.ContactCount, &l.Contact.FirstContactedAt,
 			&l.Contact.LastContactedAt, &l.Contact.Status,
+			&l.Contact.LastChannel, &l.Contact.HasError, &l.Contact.LastErrorCode,
 			&l.Contact.IsSuppressed, &l.Contact.SuppressionReason, &l.IsAvailable,
 		); err != nil {
 			return nil, TranslateError(err)
@@ -206,10 +210,11 @@ func (r *LeadRepo) Counts(ctx context.Context, f domain.LeadFilters) (domain.Lea
 		       COUNT(*) FILTER (WHERE contact_state = 'replied'),
 		       COUNT(*) FILTER (WHERE is_suppressed),
 		       COUNT(*) FILTER (WHERE contact_point_id IS NULL),
-		       COUNT(*) FILTER (WHERE website_status = 'no_website')
+		       COUNT(*) FILTER (WHERE website_status = 'no_website'),
+		       COUNT(*) FILTER (WHERE has_error)
 		  FROM lead_board WHERE %s`, where), args...).
 		Scan(&c.Total, &c.Available, &c.Contacted, &c.Replied,
-			&c.Suppressed, &c.NoPhone, &c.NoWebsite)
+			&c.Suppressed, &c.NoPhone, &c.NoWebsite, &c.Failed)
 	if err != nil {
 		return c, TranslateError(err)
 	}
@@ -249,6 +254,7 @@ func (r *LeadRepo) listByIDs(ctx context.Context, ids []uuid.UUID) ([]domain.Lea
 			&l.Contact.ContactPointID, &l.Contact.PhoneDisplay, &l.Contact.PhoneE164, &l.Contact.Email,
 			&l.Contact.Emails, &l.Contact.LineType, &l.Contact.ContactCount, &l.Contact.FirstContactedAt,
 			&l.Contact.LastContactedAt, &l.Contact.Status,
+			&l.Contact.LastChannel, &l.Contact.HasError, &l.Contact.LastErrorCode,
 			&l.Contact.IsSuppressed, &l.Contact.SuppressionReason, &l.IsAvailable,
 		); err != nil {
 			return nil, TranslateError(err)
