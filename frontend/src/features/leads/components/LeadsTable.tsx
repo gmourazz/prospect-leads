@@ -12,7 +12,7 @@ import { LEAD_STATUS_TONE } from '../model/lead-status'
 import { CHANNEL_LABELS } from '../model/contact-badge'
 import type { Density } from '../hooks/useLeadDensity'
 import { WebsiteCell } from './WebsiteCell'
-import { LeadRowActions } from './LeadRowActions'
+import { InterestToggle, LeadRowActions } from './LeadRowActions'
 
 const CHANNEL_ICON = { email: Mail, whatsapp: MessageCircle } as const
 
@@ -57,6 +57,7 @@ export function LeadsTable({
                 aria-label="Selecionar todos"
               />
             </Th>
+            <Th className="w-10" />
             <Th>Empresa</Th>
             <Th>Segmento</Th>
             <Th>Cidade</Th>
@@ -81,6 +82,9 @@ export function LeadsTable({
                       onCheckedChange={() => onToggle(lead.id)}
                       aria-label={`Selecionar ${lead.company.name}`}
                     />
+                  </Td>
+                  <Td>
+                    <InterestToggle lead={lead} />
                   </Td>
                   <Td className="max-w-[240px]">
                     <div className="flex items-center gap-2.5">
@@ -256,7 +260,7 @@ function ChannelPill({
 function SkeletonRow() {
   return (
     <tr className="border-b border-border/70 last:border-0">
-      {Array.from({ length: 9 }).map((_, i) => (
+      {Array.from({ length: 10 }).map((_, i) => (
         <Fragment key={i}>
           <td className="px-4 py-3">
             <Skeleton className="h-4 w-full max-w-[120px]" />
