@@ -68,22 +68,71 @@ export function LeadsToolbar({
           />
         </div>
 
-        <Select
-          value={filters.sort ?? '__default__'}
-          onValueChange={(v) => onSetFilter('sort', v === '__default__' ? undefined : v)}
+        <Button
+          variant="secondary"
+          size="sm"
+          className="h-10 rounded-xl"
+          disabled={activeCount === 0}
+          onClick={() => {
+            onApplyFilters({
+              segment_id: undefined, city: undefined, state: undefined,
+              status: undefined, website_status: undefined, open_now: undefined,
+              has_email: undefined, contact_state: undefined, q: undefined,
+            })
+          }}
         >
-          <SelectTrigger className="h-10 w-[168px] rounded-xl border-transparent bg-muted">
-            <ArrowUpDown className="size-3.5 shrink-0 text-muted-foreground" />
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {SORT_OPTIONS.map((o) => (
-              <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          <RotateCcw />
+          Limpar tudo
+        </Button>
 
-        <SegmentedControl options={DENSITY_OPTIONS} value={density} onChange={onDensityChange} />
+        {views.length > 0 && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="secondary" size="sm" className="h-10 rounded-xl">
+                <Bookmark />
+                Visões
+                <span className="tabular text-muted-foreground">{views.length}</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Visões salvas</DropdownMenuLabel>
+              {views.map((v) => (
+                <DropdownMenuItem
+                  key={v.name}
+                  onSelect={() => navigate(`/leads${v.search}`)}
+                  className="justify-between"
+                >
+                  <span className="truncate">{v.name}</span>
+                  <button
+                    type="button"
+                    aria-label={`Remover visão ${v.name}`}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      remove(v.name)
+                    }}
+                    className="shrink-0 rounded p-0.5 text-muted-foreground hover:text-danger"
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-10 rounded-xl border-primary/40 bg-primary/5 text-primary hover:bg-primary/10"
+          onClick={() => {
+            const name = window.prompt('Nome da visão salva:')
+            if (name) save(name, window.location.search)
+          }}
+        >
+          <Star />
+          Salvar visão
+        </Button>
 
         <Button
           variant="ghost"
@@ -114,71 +163,23 @@ export function LeadsToolbar({
           onChange={(v) => onSetFilter('contact_state', v)}
         />
 
-        <div className="ml-auto flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled={activeCount === 0}
-            onClick={() => {
-              onApplyFilters({
-                segment_id: undefined, city: undefined, state: undefined,
-                status: undefined, website_status: undefined, open_now: undefined,
-                has_email: undefined, contact_state: undefined, q: undefined,
-              })
-            }}
+        <div className="ml-auto flex items-center gap-3">
+          <Select
+            value={filters.sort ?? '__default__'}
+            onValueChange={(v) => onSetFilter('sort', v === '__default__' ? undefined : v)}
           >
-            <RotateCcw />
-            Limpar tudo
-          </Button>
+            <SelectTrigger className="h-10 w-[168px] rounded-xl border-transparent bg-muted">
+              <ArrowUpDown className="size-3.5 shrink-0 text-muted-foreground" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {SORT_OPTIONS.map((o) => (
+                <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-          {views.length > 0 && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <Bookmark />
-                  Visões
-                  <span className="tabular text-muted-foreground">{views.length}</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Visões salvas</DropdownMenuLabel>
-                {views.map((v) => (
-                  <DropdownMenuItem
-                    key={v.name}
-                    onSelect={() => navigate(`/leads${v.search}`)}
-                    className="justify-between"
-                  >
-                    <span className="truncate">{v.name}</span>
-                    <button
-                      type="button"
-                      aria-label={`Remover visão ${v.name}`}
-                      onPointerDown={(e) => e.stopPropagation()}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        remove(v.name)
-                      }}
-                      className="shrink-0 rounded p-0.5 text-muted-foreground hover:text-danger"
-                    >
-                      <X className="size-3.5" />
-                    </button>
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-
-          <Button
-            variant="outline"
-            size="sm"
-            className="border-primary/40 text-primary hover:bg-primary/5"
-            onClick={() => {
-              const name = window.prompt('Nome da visão salva:')
-              if (name) save(name, window.location.search)
-            }}
-          >
-            <Star />
-            Salvar visão
-          </Button>
+          <SegmentedControl options={DENSITY_OPTIONS} value={density} onChange={onDensityChange} />
         </div>
       </div>
 
