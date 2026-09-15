@@ -178,7 +178,7 @@ export function LeadsToolbar({
           </Select>
 
           <Select value={density} onValueChange={(v) => onDensityChange(v as Density)}>
-            <SelectTrigger className="h-9 w-[110px] rounded-full border-transparent bg-muted px-3.5 text-[12.5px]">
+            <SelectTrigger className="h-9 w-[122px] rounded-full border-transparent bg-muted px-3.5 text-[12.5px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
