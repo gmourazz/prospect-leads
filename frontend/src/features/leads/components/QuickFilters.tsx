@@ -39,7 +39,7 @@ export function QuickFilters({
   }
 
   return (
-    <div className="flex flex-nowrap items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       {FILTERS.map((f) => {
         const active = (value ?? '') === f.value
         const count = countFor(f.value)

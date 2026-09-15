@@ -155,14 +155,14 @@ export function LeadsToolbar({
         </Button>
       </div>
 
-      <div className="flex flex-nowrap items-center gap-3 overflow-x-auto px-4 pb-4">
+      <div className="flex flex-wrap items-center gap-3 px-4 pb-4">
         <QuickFilters
           value={filters.contact_state}
           counts={counts}
           onChange={(v) => onSetFilter('contact_state', v)}
         />
 
-        <div className="ml-auto flex shrink-0 items-center gap-3">
+        <div className="flex items-center gap-3">
           <Select
             value={filters.sort ?? '__default__'}
             onValueChange={(v) => onSetFilter('sort', v === '__default__' ? undefined : v)}
