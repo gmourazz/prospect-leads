@@ -1,11 +1,10 @@
-import { ArrowUpDown, LayoutList, Rows3, Search, Plus, SlidersHorizontal } from 'lucide-react'
+import { ArrowUpDown, LayoutList, Rows3, Search, Plus } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { SegmentedControl } from '@/components/common/SegmentedControl'
 import { QuickFilters } from './QuickFilters'
 import { LeadFiltersSheet } from './LeadFiltersSheet'
-import { cn } from '@/lib/cn'
 import type { LeadCounts, LeadFilters } from '@/types/domain'
 import type { Density } from '../hooks/useLeadDensity'
 
@@ -30,8 +29,6 @@ export function LeadsToolbar({
   onNewLead,
   density,
   onDensityChange,
-  filtersOpen,
-  onFiltersOpenChange,
 }: {
   filters: LeadFilters
   counts: LeadCounts | undefined
@@ -41,8 +38,6 @@ export function LeadsToolbar({
   onNewLead: () => void
   density: Density
   onDensityChange: (density: Density) => void
-  filtersOpen: boolean
-  onFiltersOpenChange: (open: boolean) => void
 }) {
   return (
     <div className="rounded-2xl border border-border bg-surface">
@@ -56,21 +51,6 @@ export function LeadsToolbar({
             onChange={(e) => onSetFilter('q', e.target.value || undefined)}
           />
         </div>
-
-        <Button
-          variant="outline"
-          size="sm"
-          className={cn('h-10 rounded-xl border-transparent', filtersOpen ? 'bg-primary/[0.1] text-primary' : 'bg-muted')}
-          onClick={() => onFiltersOpenChange(!filtersOpen)}
-        >
-          <SlidersHorizontal />
-          Filtros
-          {activeCount > 0 && (
-            <span className="ml-0.5 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">
-              {activeCount}
-            </span>
-          )}
-        </Button>
 
         <Select
           value={filters.sort ?? '__default__'}
@@ -109,7 +89,6 @@ export function LeadsToolbar({
       </div>
 
       <LeadFiltersSheet
-        open={filtersOpen}
         filters={filters}
         onApply={onApplyFilters}
         activeCount={activeCount}

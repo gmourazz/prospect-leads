@@ -31,7 +31,6 @@ import { useCities } from '../hooks/useLeads'
 import { useSavedViews } from '../hooks/useSavedViews'
 import { formatNumber } from '@/lib/format'
 import { segmentColorHex } from '@/lib/segment-colors'
-import { cn } from '@/lib/cn'
 import type { LeadFilters } from '@/types/domain'
 
 const NONE = '__all__'
@@ -59,12 +58,10 @@ const WINDOW_OPTIONS = [
 ] as const
 
 export function LeadFiltersSheet({
-  open,
   filters,
   onApply,
   activeCount,
 }: {
-  open: boolean
   filters: LeadFilters
   onApply: (patch: Partial<LeadFilters>) => void
   activeCount: number
@@ -75,51 +72,11 @@ export function LeadFiltersSheet({
   const { views, save, remove } = useSavedViews()
   const navigate = useNavigate()
 
-  if (!open) return null
-
   const activeSegments = segments?.data.filter((s) => s.is_active) ?? []
-
-  function toggleSegment(id: string) {
-    onApply({ segment_id: filters.segment_id === id ? undefined : id })
-  }
 
   return (
     <div className="border-t border-border px-6 py-5">
-      {activeSegments.length > 0 && (
-        <div className="mb-5">
-          <p className="mb-2.5 flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-[0.1em] text-muted-foreground">
-            <Tags className="size-3" />
-            Segmento
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {activeSegments.map((s) => {
-              const active = filters.segment_id === s.id
-              return (
-                <button
-                  key={s.id}
-                  onClick={() => toggleSegment(s.id)}
-                  className={cn(
-                    'flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[13px] font-semibold transition-colors',
-                    active
-                      ? 'border-primary/40 bg-primary/[0.1] text-foreground'
-                      : 'border-border text-muted-foreground hover:text-foreground',
-                  )}
-                >
-                  <Tag className="size-3.5" style={{ color: segmentColorHex(s.color) }} />
-                  <span
-                    className="size-[7px] rounded-[2px]"
-                    style={{ backgroundColor: segmentColorHex(s.color) }}
-                  />
-                  {s.name}
-                  <span className="tabular text-muted-foreground">{formatNumber(s.lead_count)}</span>
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      )}
-
-      <div className="grid grid-cols-2 gap-x-8 gap-y-4 lg:grid-cols-[0.55fr_1fr_1fr_1fr_1.5fr]">
+      <div className="grid grid-cols-2 gap-x-8 gap-y-4 lg:grid-cols-3">
         <Field label="UF" icon={MapPin}>
           <Select
             value={filters.state ?? NONE}
@@ -166,6 +123,29 @@ export function LeadFiltersSheet({
             <SelectContent>
               {SITE_OPTIONS.map((o) => (
                 <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
+
+        <Field label="Segmento" icon={Tags}>
+          <Select
+            value={filters.segment_id ?? NONE}
+            onValueChange={(v) => onApply({ segment_id: v === NONE ? undefined : v })}
+          >
+            <SelectTrigger className="h-10 rounded-xl border-transparent bg-muted">
+              <SelectValue placeholder="Todos" />
+            </SelectTrigger>
+            <SelectContent className="max-h-72">
+              <SelectItem value={NONE}>Todos</SelectItem>
+              {activeSegments.map((s) => (
+                <SelectItem key={s.id} value={s.id}>
+                  <span className="flex items-center gap-2">
+                    <Tag className="size-3.5" style={{ color: segmentColorHex(s.color) }} />
+                    {s.name}
+                    <span className="tabular text-muted-foreground">{formatNumber(s.lead_count)}</span>
+                  </span>
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>

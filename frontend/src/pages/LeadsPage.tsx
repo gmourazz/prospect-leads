@@ -34,7 +34,6 @@ export function LeadsPage() {
   const [whatsappSkipped, setWhatsappSkipped] = useState(0)
   const [enqueueOpen, setEnqueueOpen] = useState(false)
   const [enqueueLeads, setEnqueueLeads] = useState<Lead[]>([])
-  const [filtersOpen, setFiltersOpen] = useState(false)
   const [density, setDensity] = useLeadDensity()
   const [exporting, setExporting] = useState(false)
   const enrichEmails = useEnrichEmails()
@@ -168,8 +167,6 @@ export function LeadsPage() {
           onNewLead={() => setNewLeadOpen(true)}
           density={density}
           onDensityChange={setDensity}
-          filtersOpen={filtersOpen}
-          onFiltersOpenChange={setFiltersOpen}
         />
       </div>
 
