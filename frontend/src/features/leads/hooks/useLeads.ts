@@ -145,6 +145,32 @@ export function useUnsuppressContact() {
   })
 }
 
+export function useMarkInterested() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, note }: { id: string; note?: string }) => leadsApi.markInterested(id, note),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.leads.all })
+      queryClient.invalidateQueries({ queryKey: queryKeys.interested.all })
+      toast.success('Marcado como interessado')
+    },
+    onError: (error) => toast.error(errorMessage(error)),
+  })
+}
+
+export function useUnmarkInterested() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => leadsApi.unmarkInterested(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.leads.all })
+      queryClient.invalidateQueries({ queryKey: queryKeys.interested.all })
+      toast.success('Interesse removido')
+    },
+    onError: (error) => toast.error(errorMessage(error)),
+  })
+}
+
 function errorMessage(error: unknown) {
   return error instanceof ApiError ? error.userMessage : 'Algo deu errado.'
 }

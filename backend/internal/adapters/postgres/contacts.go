@@ -91,15 +91,19 @@ func (r *ContactRepo) State(ctx context.Context, id uuid.UUID) (domain.ContactSt
 		       COALESCE(s.status::text, 'never_contacted'),
 		       COALESCE(s.contact_count, 0),
 		       s.first_contacted_at, s.last_contacted_at,
-		       (sup.id IS NOT NULL), sup.reason
+		       (sup.id IS NOT NULL), sup.reason,
+		       (im.id IS NOT NULL), im.note
 		  FROM contact_points cp
 		  LEFT JOIN contact_point_stats s ON s.contact_point_id = cp.id
 		  LEFT JOIN suppressions sup
 		         ON sup.contact_point_id = cp.id AND sup.revoked_at IS NULL
+		  LEFT JOIN interest_marks im
+		         ON im.contact_point_id = cp.id AND im.revoked_at IS NULL
 		 WHERE cp.id = $1`, id).
 		Scan(&st.ContactPointID, &st.PhoneDisplay, &st.PhoneE164, &st.Email, &st.LineType,
 			&st.Status, &st.ContactCount, &st.FirstContactedAt, &st.LastContactedAt,
-			&st.IsSuppressed, &st.SuppressionReason)
+			&st.IsSuppressed, &st.SuppressionReason,
+			&st.IsInterested, &st.InterestNote)
 	if err != nil {
 		return st, TranslateError(err)
 	}
@@ -223,6 +227,51 @@ func (r *ContactRepo) ListSuppressions(ctx context.Context) ([]domain.Suppressio
 			return nil, TranslateError(err)
 		}
 		out = append(out, s)
+	}
+	return out, rows.Err()
+}
+
+func (r *ContactRepo) MarkInterested(ctx context.Context, id uuid.UUID, note string, by uuid.UUID) error {
+	_, err := r.DB(ctx).Exec(ctx, `
+		INSERT INTO interest_marks (contact_point_id, note, created_by)
+		VALUES ($1, NULLIF($2, ''), $3)`, id, note, by)
+	return TranslateError(err)
+}
+
+func (r *ContactRepo) UnmarkInterested(ctx context.Context, id uuid.UUID, by uuid.UUID) error {
+	_, err := r.DB(ctx).Exec(ctx, `
+		UPDATE interest_marks
+		   SET revoked_at = now(), revoked_by = $2
+		 WHERE contact_point_id = $1 AND revoked_at IS NULL`, id, by)
+	return TranslateError(err)
+}
+
+func (r *ContactRepo) ListInterested(ctx context.Context) ([]domain.InterestMark, error) {
+	rows, err := r.DB(ctx).Query(ctx, `
+		SELECT im.id, im.contact_point_id, cp.phone_display,
+		       (SELECT c.trade_name
+		          FROM company_contact_points ccp
+		          JOIN companies c ON c.id = ccp.company_id
+		         WHERE ccp.contact_point_id = cp.id
+		         LIMIT 1),
+		       im.note, im.created_at
+		  FROM interest_marks im
+		  JOIN contact_points cp ON cp.id = im.contact_point_id
+		 WHERE im.revoked_at IS NULL
+		 ORDER BY im.created_at DESC`)
+	if err != nil {
+		return nil, TranslateError(err)
+	}
+	defer rows.Close()
+
+	out := []domain.InterestMark{}
+	for rows.Next() {
+		var m domain.InterestMark
+		if err := rows.Scan(&m.ID, &m.ContactID, &m.PhoneDisplay, &m.CompanyName,
+			&m.Note, &m.CreatedAt); err != nil {
+			return nil, TranslateError(err)
+		}
+		out = append(out, m)
 	}
 	return out, rows.Err()
 }

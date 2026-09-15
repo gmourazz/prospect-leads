@@ -276,6 +276,48 @@ func (a *API) listSuppressions(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"data": items})
 }
 
+func (a *API) markInterested(w http.ResponseWriter, r *http.Request) {
+	id, err := uuidParam(r, "id")
+	if err != nil {
+		writeError(w, r, err)
+		return
+	}
+	var body struct {
+		Note string `json:"note"`
+	}
+	if err := decode(r, &body); err != nil {
+		writeError(w, r, err)
+		return
+	}
+	if err := a.Contacts.MarkInterested(r.Context(), id, body.Note, UserFromContext(r.Context())); err != nil {
+		writeError(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, map[string]string{"status": "interested"})
+}
+
+func (a *API) unmarkInterested(w http.ResponseWriter, r *http.Request) {
+	id, err := uuidParam(r, "id")
+	if err != nil {
+		writeError(w, r, err)
+		return
+	}
+	if err := a.Contacts.UnmarkInterested(r.Context(), id, UserFromContext(r.Context())); err != nil {
+		writeError(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"status": "released"})
+}
+
+func (a *API) listInterested(w http.ResponseWriter, r *http.Request) {
+	items, err := a.Contacts.ListInterested(r.Context())
+	if err != nil {
+		writeError(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"data": items})
+}
+
 func (a *API) lookupPhone(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		Phone string `json:"phone"`

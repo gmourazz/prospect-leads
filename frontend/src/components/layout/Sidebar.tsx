@@ -11,6 +11,7 @@ import {
   Send,
   Settings,
   ShieldBan,
+  Star,
   Tags,
   Users,
 } from 'lucide-react'
@@ -20,6 +21,7 @@ import { useSettings } from '@/features/settings/hooks/useSettings'
 const NAV = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/leads', label: 'Leads', icon: Users },
+  { to: '/interessados', label: 'Interessados', icon: Star },
   { to: '/buscar', label: 'Buscar leads', icon: Search },
   { to: '/campanhas', label: 'Campanhas', icon: Send },
   { to: '/aguardando', label: 'Aguardando resposta', icon: Clock },

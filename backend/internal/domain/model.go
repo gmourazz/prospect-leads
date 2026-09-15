@@ -52,6 +52,11 @@ type ContactState struct {
 	LastContactedAt   *time.Time `json:"last_contacted_at"`
 	IsSuppressed      bool       `json:"is_suppressed"`
 	SuppressionReason *string    `json:"suppression_reason"`
+	// IsInterested marks a contact who demonstrou interesse, for future
+	// remarketing — independent of IsSuppressed, kept on contact_points for
+	// the same reason: survives "apagar e reimportar todos os leads".
+	IsInterested bool    `json:"is_interested"`
+	InterestNote *string `json:"interest_note"`
 	// LastChannel/HasError/LastErrorCode describe the most recent dispatch
 	// attempt regardless of outcome — unlike Status, which only ever reflects
 	// a successful send (contact_point_stats never hears about a failure).
@@ -334,6 +339,15 @@ type Suppression struct {
 	PhoneDisplay string    `json:"phone_display"`
 	CompanyName  *string   `json:"company_name"`
 	Reason       string    `json:"reason"`
+	Note         *string   `json:"note"`
+	CreatedAt    time.Time `json:"created_at"`
+}
+
+type InterestMark struct {
+	ID           uuid.UUID `json:"id"`
+	ContactID    uuid.UUID `json:"contact_point_id"`
+	PhoneDisplay string    `json:"phone_display"`
+	CompanyName  *string   `json:"company_name"`
 	Note         *string   `json:"note"`
 	CreatedAt    time.Time `json:"created_at"`
 }

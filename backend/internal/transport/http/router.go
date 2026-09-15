@@ -102,12 +102,16 @@ func (a *API) mountProtectedRoutes(r chi.Router) {
 		r.Get("/{id}/events", a.contactEvents)
 		r.Post("/{id}/suppressions", a.suppressContact)
 		r.Delete("/{id}/suppressions", a.unsuppressContact)
+		r.Post("/{id}/interest", a.markInterested)
+		r.Delete("/{id}/interest", a.unmarkInterested)
 		r.Post("/{id}/recontact-approvals", a.approveRecontact)
 		r.Post("/{id}/replied", a.markReplied)
 	})
 
 	r.Get("/suppressions", a.listSuppressions)
 	r.Post("/suppressions", a.blockPhone)
+
+	r.Get("/interested", a.listInterested)
 
 	r.Route("/templates", func(r chi.Router) {
 		r.Get("/", a.listTemplates)

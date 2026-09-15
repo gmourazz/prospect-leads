@@ -94,7 +94,7 @@ const leadSelect = `
 	       contact_point_id, phone_display, phone_e164, email, emails, line_type,
 	       contact_count, first_contacted_at, last_contacted_at, contact_state,
 	       last_channel, has_error, last_error_code,
-	       is_suppressed, suppression_reason, is_available
+	       is_suppressed, suppression_reason, is_interested, interest_note, is_available
 	  FROM lead_board`
 
 func (r *LeadRepo) List(ctx context.Context, f domain.LeadFilters) ([]domain.Lead, error) {
@@ -141,7 +141,8 @@ func (r *LeadRepo) List(ctx context.Context, f domain.LeadFilters) ([]domain.Lea
 			&l.Contact.Emails, &l.Contact.LineType, &l.Contact.ContactCount, &l.Contact.FirstContactedAt,
 			&l.Contact.LastContactedAt, &l.Contact.Status,
 			&l.Contact.LastChannel, &l.Contact.HasError, &l.Contact.LastErrorCode,
-			&l.Contact.IsSuppressed, &l.Contact.SuppressionReason, &l.IsAvailable,
+			&l.Contact.IsSuppressed, &l.Contact.SuppressionReason,
+			&l.Contact.IsInterested, &l.Contact.InterestNote, &l.IsAvailable,
 		); err != nil {
 			return nil, TranslateError(err)
 		}
@@ -255,7 +256,8 @@ func (r *LeadRepo) listByIDs(ctx context.Context, ids []uuid.UUID) ([]domain.Lea
 			&l.Contact.Emails, &l.Contact.LineType, &l.Contact.ContactCount, &l.Contact.FirstContactedAt,
 			&l.Contact.LastContactedAt, &l.Contact.Status,
 			&l.Contact.LastChannel, &l.Contact.HasError, &l.Contact.LastErrorCode,
-			&l.Contact.IsSuppressed, &l.Contact.SuppressionReason, &l.IsAvailable,
+			&l.Contact.IsSuppressed, &l.Contact.SuppressionReason,
+			&l.Contact.IsInterested, &l.Contact.InterestNote, &l.IsAvailable,
 		); err != nil {
 			return nil, TranslateError(err)
 		}

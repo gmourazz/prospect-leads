@@ -27,5 +27,6 @@ export const queryKeys = {
     detail: (id: string) => ['imports', 'detail', id] as const,
   },
   suppressions: { all: ['suppressions'] as const },
+  interested: { all: ['interested'] as const },
   dashboard: { overview: (days: number) => ['dashboard', 'overview', days] as const },
 } as const

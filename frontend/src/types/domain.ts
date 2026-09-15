@@ -18,6 +18,8 @@ export interface ContactState {
   last_contacted_at: string | null
   is_suppressed: boolean
   suppression_reason: string | null
+  is_interested: boolean
+  interest_note: string | null
   // Most recent dispatch attempt, win or lose — unlike `status`, which only
   // ever reflects a successful send (a failed attempt never touches it).
   last_channel: 'email' | 'whatsapp' | null
@@ -260,6 +262,15 @@ export interface Suppression {
   phone_display: string
   company_name: string | null
   reason: string
+  note: string | null
+  created_at: string
+}
+
+export interface InterestMark {
+  id: string
+  contact_point_id: string
+  phone_display: string
+  company_name: string | null
   note: string | null
   created_at: string
 }

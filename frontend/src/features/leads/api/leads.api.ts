@@ -50,6 +50,12 @@ export const leadsApi = {
   unsuppress: (contactPointId: string, reason: string) =>
     http.del(`/contact-points/${contactPointId}/suppressions`, { reason }),
 
+  markInterested: (contactPointId: string, note?: string) =>
+    http.post(`/contact-points/${contactPointId}/interest`, { note }),
+
+  unmarkInterested: (contactPointId: string) =>
+    http.del(`/contact-points/${contactPointId}/interest`),
+
   approveRecontact: (contactPointId: string, reason: string) =>
     http.post<{ approval_id: string; previous_contacts: ContactEvent[] }>(
       `/contact-points/${contactPointId}/recontact-approvals`,

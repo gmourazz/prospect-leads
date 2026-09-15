@@ -11,6 +11,7 @@ import { ImportPage } from '@/pages/ImportPage'
 import { SearchLeadsPage } from '@/pages/SearchLeadsPage'
 import { SegmentsPage } from '@/pages/SegmentsPage'
 import { SuppressionPage } from '@/pages/SuppressionPage'
+import { InterestedPage } from '@/pages/InterestedPage'
 import { AwaitingReplyPage } from '@/pages/AwaitingReplyPage'
 import { WhatsAppQueuePage } from '@/pages/WhatsAppQueuePage'
 import { SettingsPage } from '@/pages/SettingsPage'
@@ -27,6 +28,7 @@ export const router = createBrowserRouter([
         children: [
       { index: true, element: <DashboardPage /> },
       { path: 'leads', element: <LeadsPage /> },
+      { path: 'interessados', element: <InterestedPage /> },
       { path: 'campanhas', element: <CampaignsPage /> },
       { path: 'aguardando', element: <AwaitingReplyPage /> },
       { path: 'fila-whatsapp', element: <WhatsAppQueuePage /> },

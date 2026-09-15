@@ -6,6 +6,8 @@ import {
   RotateCcw,
   ShieldBan,
   ShieldCheck,
+  Star,
+  StarOff,
   Trash2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -22,7 +24,9 @@ import { formatDateTime } from '@/lib/format'
 import type { Lead } from '@/types/domain'
 import {
   useDeleteLead,
+  useMarkInterested,
   useSuppressContact,
+  useUnmarkInterested,
   useUnsuppressContact,
 } from '../hooks/useLeads'
 import { RecontactDialog } from './RecontactDialog'
@@ -32,14 +36,18 @@ import { SendWhatsAppDialog } from './SendWhatsAppDialog'
 export function LeadRowActions({ lead }: { lead: Lead }) {
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [suppressOpen, setSuppressOpen] = useState(false)
+  const [interestOpen, setInterestOpen] = useState(false)
   const [recontactOpen, setRecontactOpen] = useState(false)
   const [detailOpen, setDetailOpen] = useState(false)
   const [whatsappOpen, setWhatsappOpen] = useState(false)
   const [note, setNote] = useState('')
+  const [interestNote, setInterestNote] = useState('')
 
   const deleteLead = useDeleteLead()
   const suppress = useSuppressContact()
   const unsuppress = useUnsuppressContact()
+  const markInterested = useMarkInterested()
+  const unmarkInterested = useUnmarkInterested()
 
   const contactId = lead.contact.contact_point_id
   const alreadyContacted = lead.contact.contact_count > 0
@@ -79,6 +87,18 @@ export function LeadRowActions({ lead }: { lead: Lead }) {
             <DropdownMenuItem onSelect={() => unsuppress.mutate({ id: contactId, reason: 'manual' })}>
               <ShieldCheck />
               Remover bloqueio
+            </DropdownMenuItem>
+          )}
+          {contactId && !lead.contact.is_interested && (
+            <DropdownMenuItem onSelect={() => setInterestOpen(true)}>
+              <Star />
+              Demonstrou interesse
+            </DropdownMenuItem>
+          )}
+          {contactId && lead.contact.is_interested && (
+            <DropdownMenuItem onSelect={() => unmarkInterested.mutate(contactId)}>
+              <StarOff />
+              Remover interesse
             </DropdownMenuItem>
           )}
           <DropdownMenuSeparator />
@@ -124,6 +144,28 @@ export function LeadRowActions({ lead }: { lead: Lead }) {
           placeholder="Motivo (opcional)"
           value={note}
           onChange={(e) => setNote(e.target.value)}
+        />
+      </ConfirmDialog>
+
+      <ConfirmDialog
+        open={interestOpen}
+        onOpenChange={setInterestOpen}
+        title="Marcar como interessado?"
+        description="Fica separado na lista de Interessados, pra remarketing futuro — mesmo se a fila do WhatsApp cair, o contato não se perde."
+        confirmLabel="Marcar"
+        loading={markInterested.isPending}
+        onConfirm={() =>
+          contactId &&
+          markInterested.mutate(
+            { id: contactId, note: interestNote || undefined },
+            { onSuccess: () => setInterestOpen(false) },
+          )
+        }
+      >
+        <Textarea
+          placeholder="Observação (opcional)"
+          value={interestNote}
+          onChange={(e) => setInterestNote(e.target.value)}
         />
       </ConfirmDialog>
 
