@@ -10,7 +10,6 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { SegmentedControl } from '@/components/common/SegmentedControl'
 import { QuickFilters } from './QuickFilters'
 import { LeadFiltersSheet } from './LeadFiltersSheet'
 import { useSavedViews } from '../hooks/useSavedViews'
@@ -179,7 +178,17 @@ export function LeadsToolbar({
             </SelectContent>
           </Select>
 
-          <SegmentedControl options={DENSITY_OPTIONS} value={density} onChange={onDensityChange} />
+          <Select value={density} onValueChange={(v) => onDensityChange(v as Density)}>
+            <SelectTrigger className="h-10 w-[168px] rounded-xl border-transparent bg-muted">
+              <Rows3 className="size-3.5 shrink-0 text-muted-foreground" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {DENSITY_OPTIONS.map((o) => (
+                <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
