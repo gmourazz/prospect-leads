@@ -27,7 +27,7 @@ export function Pagination({
       <div className="flex items-center gap-2 text-muted-foreground">
         <span>Itens por página</span>
         <Select value={String(limit)} onValueChange={(v) => onLimitChange(Number(v))}>
-          <SelectTrigger className="h-8 w-[72px]"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="h-8 w-[72px] rounded-full border-transparent bg-muted px-3"><SelectValue /></SelectTrigger>
           <SelectContent>
             {PAGE_SIZES.map((size) => (
               <SelectItem key={size} value={String(size)}>{size}</SelectItem>

@@ -167,7 +167,7 @@ export function LeadsToolbar({
             value={filters.sort ?? '__default__'}
             onValueChange={(v) => onSetFilter('sort', v === '__default__' ? undefined : v)}
           >
-            <SelectTrigger className="h-9 w-[128px] rounded-xl border-transparent bg-muted px-2.5 text-[12.5px]">
+            <SelectTrigger className="h-9 w-[128px] rounded-full border-transparent bg-muted px-3.5 text-[12.5px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -178,7 +178,7 @@ export function LeadsToolbar({
           </Select>
 
           <Select value={density} onValueChange={(v) => onDensityChange(v as Density)}>
-            <SelectTrigger className="h-9 w-[110px] rounded-xl border-transparent bg-muted px-2.5 text-[12.5px]">
+            <SelectTrigger className="h-9 w-[110px] rounded-full border-transparent bg-muted px-3.5 text-[12.5px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
