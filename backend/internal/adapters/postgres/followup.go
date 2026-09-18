@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -29,7 +30,7 @@ type AwaitingReply struct {
 	City           *string    `json:"city"`
 	State          *string    `json:"state"`
 	SegmentName    *string    `json:"segment_name"`
-	EmailedAt      string     `json:"emailed_at"`
+	EmailedAt      time.Time  `json:"emailed_at"`
 	DaysSinceEmail int        `json:"days_since_email"`
 	WhatsAppSent   bool       `json:"whatsapp_sent"`
 	OpenDispatchID *uuid.UUID `json:"open_dispatch_id"`
