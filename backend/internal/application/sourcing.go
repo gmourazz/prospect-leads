@@ -214,6 +214,20 @@ func (s *SourcingService) runStateSearch(
 				s.stateProgress.FailedCalls++
 				s.stateProgress.LastError = err.Error()
 				s.stateProgressMu.Unlock()
+
+				// The provider itself just said "no more calls today" —
+				// continuing would only burn through the rest of the city
+				// list racking up the same rejection, city after city.
+				var quotaErr *sourcing.QuotaExceededError
+				if errors.As(err, &quotaErr) {
+					s.stateProgressMu.Lock()
+					s.stateProgress.LastError = "cota diária do provedor esgotada — busca interrompida em " + city
+					s.stateProgressMu.Unlock()
+					logger.Warn("state search: stopping early, provider quota exhausted",
+						"action", "sourcing.state_search.quota_exhausted",
+						"city", city, "processed_cities", i)
+					return
+				}
 			} else {
 				merged.Provider = outcome.Provider
 				for _, c := range outcome.Results {
