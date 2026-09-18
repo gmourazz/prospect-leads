@@ -25,10 +25,10 @@ export function useCampaignTargets(id: string, state: string) {
   })
 }
 
-export function useCampaignBatches(id: string) {
+export function useCampaignBatches(id: string, range?: { from?: string; to?: string }) {
   return useQuery({
-    queryKey: queryKeys.campaigns.batches(id),
-    queryFn: () => campaignsApi.batches(id),
+    queryKey: queryKeys.campaigns.batches(id, range?.from, range?.to),
+    queryFn: () => campaignsApi.batches(id, range),
     enabled: Boolean(id),
   })
 }

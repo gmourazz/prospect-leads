@@ -323,7 +323,7 @@ type QueueStatus struct {
 	Recent []postgres.QueueItem   `json:"recent"`
 }
 
-func (s *WhatsAppAgentService) Status(ctx context.Context) (QueueStatus, error) {
+func (s *WhatsAppAgentService) Status(ctx context.Context, from, to *time.Time) (QueueStatus, error) {
 	var out QueueStatus
 	var err error
 	if out.State, err = s.repo.State(ctx); err != nil {
@@ -335,7 +335,14 @@ func (s *WhatsAppAgentService) Status(ctx context.Context) (QueueStatus, error) 
 	if out.Rules, err = s.settings.WhatsAppRules(ctx); err != nil {
 		return out, err
 	}
-	if out.Recent, err = s.repo.Recent(ctx, 30); err != nil {
+	// A wider window than the default 30 whenever a date range narrows the
+	// result anyway — otherwise a busy day past the first 30 rows would look
+	// empty for no reason once it's filtered.
+	limit := 30
+	if from != nil || to != nil {
+		limit = 200
+	}
+	if out.Recent, err = s.repo.Recent(ctx, limit, from, to); err != nil {
 		return out, err
 	}
 	return out, nil

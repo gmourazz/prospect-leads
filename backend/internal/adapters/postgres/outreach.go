@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"encoding/json"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -429,13 +430,15 @@ func (r *OutreachRepo) FinishBatch(ctx context.Context, batchID uuid.UUID, sent,
 	return b, nil
 }
 
-func (r *OutreachRepo) ListBatches(ctx context.Context, campaignID uuid.UUID) ([]domain.Batch, error) {
+func (r *OutreachRepo) ListBatches(ctx context.Context, campaignID uuid.UUID, from, to *time.Time) ([]domain.Batch, error) {
 	rows, err := r.DB(ctx).Query(ctx, `
 		SELECT id, campaign_id, sequence_no, requested_size, reserved_count,
 		       sent_count, failed_count, status::text, is_recontact, created_at, finished_at
 		  FROM dispatch_batches
 		 WHERE campaign_id = $1
-		 ORDER BY sequence_no DESC`, campaignID)
+		   AND ($2::timestamptz IS NULL OR created_at >= $2)
+		   AND ($3::timestamptz IS NULL OR created_at < $3)
+		 ORDER BY sequence_no DESC`, campaignID, from, to)
 	if err != nil {
 		return nil, TranslateError(err)
 	}

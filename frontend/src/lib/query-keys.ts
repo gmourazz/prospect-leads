@@ -17,7 +17,8 @@ export const queryKeys = {
     all: ['campaigns'] as const,
     detail: (id: string) => ['campaigns', 'detail', id] as const,
     targets: (id: string, state: string) => ['campaigns', id, 'targets', state] as const,
-    batches: (id: string) => ['campaigns', id, 'batches'] as const,
+    batches: (id: string, from?: string, to?: string) =>
+      ['campaigns', id, 'batches', from ?? null, to ?? null] as const,
   },
   contacts: {
     events: (id: string) => ['contacts', id, 'events'] as const,

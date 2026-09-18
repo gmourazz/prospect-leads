@@ -604,7 +604,8 @@ func (a *API) listBatches(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, err)
 		return
 	}
-	batches, err := a.Outreach.ListBatches(r.Context(), id)
+	from, to := parseDateRangeParams(r.URL.Query())
+	batches, err := a.Outreach.ListBatches(r.Context(), id, from, to)
 	if err != nil {
 		writeError(w, r, err)
 		return

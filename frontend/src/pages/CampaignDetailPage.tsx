@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { ErrorState } from '@/components/common/ErrorState'
+import { DateRangeFilter, type DateRange } from '@/components/common/DateRangeFilter'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -24,7 +25,8 @@ import { useQuery } from '@tanstack/react-query'
 export function CampaignDetailPage() {
   const { id = '' } = useParams()
   const { data: campaign, isError, error, refetch } = useCampaign(id)
-  const { data: batches } = useCampaignBatches(id)
+  const [batchesRange, setBatchesRange] = useState<DateRange>({})
+  const { data: batches } = useCampaignBatches(id, batchesRange)
   const { data: pendingTargets } = useCampaignTargets(id, 'pending')
   const [previewTargetId, setPreviewTargetId] = useState<string | undefined>()
   const [lastOutcome, setLastOutcome] = useState<BatchOutcome | null>(null)
@@ -122,9 +124,12 @@ export function CampaignDetailPage() {
               <TabsTrigger value="pending">Pendentes ({p.pending})</TabsTrigger>
             </TabsList>
             <TabsContent value="batches" className="mt-3">
+              <DateRangeFilter value={batchesRange} onChange={setBatchesRange} className="mb-3" />
               {!batches || batches.data.length === 0 ? (
                 <p className="py-6 text-center text-[13px] text-muted-foreground">
-                  Nenhum lote enviado ainda.
+                  {batchesRange.from || batchesRange.to
+                    ? 'Nenhum lote nesse período.'
+                    : 'Nenhum lote enviado ainda.'}
                 </p>
               ) : (
                 <ul className="divide-y divide-border">

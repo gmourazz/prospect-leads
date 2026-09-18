@@ -15,7 +15,13 @@ export const campaignsApi = {
   targets: (id: string, state: string, limit = 100) =>
     http.get<{ data: CampaignTarget[] }>(`/campaigns/${id}/targets?state=${state}&limit=${limit}`),
 
-  batches: (id: string) => http.get<{ data: Batch[] }>(`/campaigns/${id}/batches`),
+  batches: (id: string, range?: { from?: string; to?: string }) => {
+    const params = new URLSearchParams()
+    if (range?.from) params.set('from', range.from)
+    if (range?.to) params.set('to', range.to)
+    const qs = params.toString()
+    return http.get<{ data: Batch[] }>(`/campaigns/${id}/batches${qs ? `?${qs}` : ''}`)
+  },
 
   /** Pausing stops the campaign from being a place to send the next batch
    * from. Nothing already sent changes. */

@@ -281,7 +281,7 @@ type QueueItem struct {
 
 // Recent is the activity feed on the queue screen: what just went out, what
 // failed and why.
-func (r *WhatsAppRepo) Recent(ctx context.Context, limit int) ([]QueueItem, error) {
+func (r *WhatsAppRepo) Recent(ctx context.Context, limit int, from, to *time.Time) ([]QueueItem, error) {
 	if limit <= 0 || limit > 200 {
 		limit = 30
 	}
@@ -294,8 +294,10 @@ func (r *WhatsAppRepo) Recent(ctx context.Context, limit int) ([]QueueItem, erro
 		  LEFT JOIN companies co ON co.id = d.company_id
 		 WHERE d.channel = 'whatsapp' AND d.provider = 'baileys'
 		   AND d.status IN ('sent', 'failed', 'sending')
+		   AND ($2::timestamptz IS NULL OR d.updated_at >= $2)
+		   AND ($3::timestamptz IS NULL OR d.updated_at < $3)
 		 ORDER BY d.updated_at DESC
-		 LIMIT $1`, limit)
+		 LIMIT $1`, limit, from, to)
 	if err != nil {
 		return nil, TranslateError(err)
 	}

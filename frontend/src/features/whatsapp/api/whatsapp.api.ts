@@ -65,7 +65,13 @@ export interface EnqueueResult {
 }
 
 export const whatsappApi = {
-  status: () => http.get<WhatsAppQueueStatus>('/whatsapp/queue'),
+  status: (range?: { from?: string; to?: string }) => {
+    const params = new URLSearchParams()
+    if (range?.from) params.set('from', range.from)
+    if (range?.to) params.set('to', range.to)
+    const qs = params.toString()
+    return http.get<WhatsAppQueueStatus>(`/whatsapp/queue${qs ? `?${qs}` : ''}`)
+  },
 
   enqueue: (leadIds: string[], templateVersionId: string) =>
     http.post<EnqueueResult>('/whatsapp/queue', {

@@ -51,7 +51,8 @@ func (a *API) enqueueWhatsApp(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *API) whatsAppStatus(w http.ResponseWriter, r *http.Request) {
-	status, err := a.WhatsApp.Status(r.Context())
+	from, to := parseDateRangeParams(r.URL.Query())
+	status, err := a.WhatsApp.Status(r.Context(), from, to)
 	if err != nil {
 		writeError(w, r, err)
 		return

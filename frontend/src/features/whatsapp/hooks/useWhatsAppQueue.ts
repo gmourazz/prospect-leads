@@ -7,10 +7,10 @@ const KEY = ['whatsapp', 'queue'] as const
 
 /** A fila anda sozinha no bridge local, então a tela precisa se atualizar
  *  sem interação — daí o refetch periódico em vez de invalidação manual. */
-export function useWhatsAppQueue() {
+export function useWhatsAppQueue(range?: { from?: string; to?: string }) {
   return useQuery({
-    queryKey: KEY,
-    queryFn: () => whatsappApi.status(),
+    queryKey: [...KEY, range?.from ?? null, range?.to ?? null] as const,
+    queryFn: () => whatsappApi.status(range),
     refetchInterval: 10_000,
   })
 }

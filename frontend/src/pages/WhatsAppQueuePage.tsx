@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/common/EmptyState'
+import { DateRangeFilter, type DateRange } from '@/components/common/DateRangeFilter'
 import {
   useClearWhatsAppQueue,
   usePauseWhatsApp,
@@ -23,13 +24,15 @@ import {
 } from '@/features/whatsapp/hooks/useWhatsAppQueue'
 import type { WhatsAppConnection } from '@/features/whatsapp/api/whatsapp.api'
 import { formatDateTime, formatNumber } from '@/lib/format'
+import { useState } from 'react'
 
 /**
  * Painel da fila automática. Existe porque o envio acontece fora da tela: sem
  * isso, a única forma de saber se o bridge está vivo seria olhar o terminal.
  */
 export function WhatsAppQueuePage() {
-  const { data, isLoading } = useWhatsAppQueue()
+  const [recentRange, setRecentRange] = useState<DateRange>({})
+  const { data, isLoading } = useWhatsAppQueue(recentRange)
   const pause = usePauseWhatsApp()
   const clear = useClearWhatsAppQueue()
 
@@ -164,15 +167,20 @@ export function WhatsAppQueuePage() {
           </div>
 
           <Card>
-            <CardHeader>
+            <CardHeader className="flex-row items-center justify-between">
               <CardTitle>Últimos envios</CardTitle>
+              <DateRangeFilter value={recentRange} onChange={setRecentRange} />
             </CardHeader>
             <CardContent>
               {data.recent.length === 0 ? (
                 <EmptyState
                   icon={Send}
                   title="Nada enviado ainda"
-                  description="Selecione leads na tela de Leads e escolha Enviar automático."
+                  description={
+                    recentRange.from || recentRange.to
+                      ? 'Nenhum envio nesse período.'
+                      : 'Selecione leads na tela de Leads e escolha Enviar automático.'
+                  }
                 />
               ) : (
                 <ul className="divide-y divide-border">

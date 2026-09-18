@@ -5,6 +5,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -287,6 +288,24 @@ func parseFilters(r *http.Request) domain.LeadFilters {
 		f.Offset = (page - 1) * f.Limit
 	}
 	return f
+}
+
+// parseDateRangeParams reads "from"/"to" (YYYY-MM-DD) from the query string
+// into the [from, to) range a timestamp column filter expects — "to" is
+// bumped a day forward so the day the user picked is included whole.
+func parseDateRangeParams(q url.Values) (from, to *time.Time) {
+	if v := q.Get("from"); v != "" {
+		if t, err := time.Parse("2006-01-02", v); err == nil {
+			from = &t
+		}
+	}
+	if v := q.Get("to"); v != "" {
+		if t, err := time.Parse("2006-01-02", v); err == nil {
+			end := t.Add(24 * time.Hour)
+			to = &end
+		}
+	}
+	return from, to
 }
 
 func (a *API) listLeads(w http.ResponseWriter, r *http.Request) {

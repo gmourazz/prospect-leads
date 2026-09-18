@@ -133,8 +133,8 @@ func (s *OutreachService) ListTargets(ctx context.Context, id uuid.UUID, state s
 	return s.repo.ListTargets(ctx, id, state, limit)
 }
 
-func (s *OutreachService) ListBatches(ctx context.Context, id uuid.UUID) ([]domain.Batch, error) {
-	return s.repo.ListBatches(ctx, id)
+func (s *OutreachService) ListBatches(ctx context.Context, id uuid.UUID, from, to *time.Time) ([]domain.Batch, error) {
+	return s.repo.ListBatches(ctx, id, from, to)
 }
 
 type SendBatchCommand struct {
