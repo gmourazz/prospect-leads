@@ -134,7 +134,7 @@ export function LeadsTable({
                   <Td>
                     {lead.contact.contact_point_id ? (
                       <div className="flex flex-col gap-1">
-                        <span className="font-mono text-[12.5px] tabular text-foreground">
+                        <span className="text-[12.5px] tabular text-foreground">
                           {lead.contact.phone_display}
                         </span>
                         <span

@@ -134,7 +134,7 @@ export function AwaitingReplyPage() {
                       </p>
                     </Td>
                     <Td>
-                      <p className="font-mono text-[12.5px] tabular">{r.phone_display}</p>
+                      <p className="text-[12.5px] tabular">{r.phone_display}</p>
                       <p className="truncate text-[11.5px] text-muted-foreground">{r.email ?? '—'}</p>
                     </Td>
                     <Td className="text-muted-foreground">

@@ -30,7 +30,7 @@ export function ImportPreviewTable({ rows }: { rows: ImportRowView[] }) {
               <tr key={row.row_number} className="border-b border-border/70 last:border-0">
                 <td className="px-3 py-2 text-muted-foreground">{row.row_number}</td>
                 <td className="px-3 py-2 font-medium">{row.company_name || '—'}</td>
-                <td className="px-3 py-2 font-mono text-[12px]">{row.phone_display || '—'}</td>
+                <td className="px-3 py-2 tabular text-[12px]">{row.phone_display || '—'}</td>
                 <td className="px-3 py-2 text-muted-foreground">{row.city || '—'}</td>
                 <td className="px-3 py-2">
                   <Badge variant={outcome.tone}>{outcome.label}</Badge>

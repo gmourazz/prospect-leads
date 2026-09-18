@@ -43,7 +43,7 @@ export function InterestedPage() {
               <div key={item.id} className="flex items-center justify-between gap-3 px-4 py-3 text-[13px]">
                 <div className="min-w-0">
                   <p className="font-medium">{item.company_name ?? 'Sem empresa vinculada'}</p>
-                  <p className="font-mono text-[12px] text-muted-foreground">{item.phone_display}</p>
+                  <p className="tabular text-[12px] text-muted-foreground">{item.phone_display}</p>
                   {item.note && <p className="mt-0.5 text-[12px] text-muted-foreground">{item.note}</p>}
                 </div>
                 <div className="flex shrink-0 items-center gap-3">

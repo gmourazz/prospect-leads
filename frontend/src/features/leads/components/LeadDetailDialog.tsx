@@ -68,7 +68,7 @@ export function LeadDetailDialog({
             <Field label="Cidade">{lead.company.city ? `${lead.company.city}/${lead.company.state}` : '—'}</Field>
             <Field label="Segmento">{lead.segment?.name ?? '—'}</Field>
             <Field label="Telefone">
-              <span className="font-mono">{lead.contact.phone_display}</span>
+              <span className="tabular">{lead.contact.phone_display}</span>
             </Field>
             <Field label="Coletado em">{formatDate(lead.collected_at)}</Field>
             <Field label="Email">

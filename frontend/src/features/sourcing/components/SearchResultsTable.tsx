@@ -32,7 +32,7 @@ export function SearchResultsTable({ results }: { results: SearchCandidate[] }) 
               className="h-11 border-b border-border/70 transition-colors last:border-0 hover:bg-muted/40"
             >
               <td className="px-4 py-2 font-medium">{r.company_name}</td>
-              <td className="px-4 py-2 font-mono text-[12.5px] tabular">
+              <td className="px-4 py-2 text-[12.5px] tabular">
                 {r.phone_display || <span className="text-danger">inválido</span>}
               </td>
               <td className="px-4 py-2 text-muted-foreground">{r.segment_name || '—'}</td>
