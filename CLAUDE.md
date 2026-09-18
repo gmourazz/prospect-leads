@@ -29,16 +29,16 @@ go test ./...                  # roda todos os testes
 go test ./internal/domain/outreach/... -run TestGreeting   # teste único
 go vet ./...
 ```
-Variáveis de ambiente: ver `backend/.env.example` (`DATABASE_URL`, `PORT`, `CORS_ORIGIN`, `JWT_SECRET`, `GOOGLE_PLACES_API_KEY`, `GOOGLE_SEARCH_API_KEY`/`GOOGLE_SEARCH_CX`, `GMAIL_ADDRESS`/`GMAIL_APP_PASSWORD`, `UPLOADS_DIR`, `GATEWAY_FAIL_RATE`). Sem Gmail configurado, o gateway de envio fica simulado.
+Router: chi (`go-chi/chi/v5`). Variáveis de ambiente: ver `backend/.env.example` (`DATABASE_URL`, `PORT`, `CORS_ORIGIN`, `JWT_SECRET`, `GOOGLE_PLACES_API_KEY`, `GOOGLE_SEARCH_API_KEY`/`GOOGLE_SEARCH_CX`, `GMAIL_ADDRESS`/`GMAIL_APP_PASSWORD`, `UPLOADS_DIR`, `GATEWAY_FAIL_RATE`). Sem Gmail configurado, o gateway de envio fica simulado.
 
-### Frontend (React + Vite + TS, em `frontend/`)
+### Frontend (React 18 + Vite + TS, em `frontend/`)
 ```bash
 npm install
 npm run dev         # Vite em :5173, proxy de /api para localhost:8080
 npm run build       # tsc -b && vite build
 npm run typecheck   # tsc --noEmit
 ```
-Sem lint configurado e sem suíte de testes no frontend.
+Estado servidor: TanStack Query 5 (única fonte — não duplicar em useState). UI: componentes próprios estilo shadcn sobre Radix UI + Tailwind. Sem lint configurado e sem suíte de testes no frontend.
 
 ### whatsapp-bridge (Node ≥20, em `whatsapp-bridge/`)
 ```bash
@@ -67,6 +67,7 @@ Slash command `/build-prod` faz o fluxo inteiro: portão de qualidade (`go build
 transport/http   → handlers HTTP finos (parse, auth, serialização) — router.go define todas as rotas
 application       → casos de uso, orquestra transações (ex.: "enviar lote de 10", pacing do agente de WhatsApp)
 domain            → entidades, value objects (PhoneNumber, CNPJ), erros de domínio, ports (interfaces)
+  ├─ company/contact/identity/lead/outreach/sourcing  → um subpacote por conceito de domínio
 adapters          → postgres (pgx, sem ORM), providers de coleta (googleplaces, osm), messaging (Gmail SMTP ou simulado)
 ```
 Wiring é manual em `cmd/api/main.go` (sem DI framework) — toda dependência é rastreável lendo essa função.
@@ -92,6 +93,8 @@ Ver seção 2.2, 4.7 e 10 de `docs/ARCHITECTURE.md` para o fluxo completo de cam
 O bridge é deliberadamente burro: só pergunta "posso enviar algo?" (`POST /whatsapp/agent/claim`) e reporta o resultado (`POST /whatsapp/agent/result`). Toda regra de ritmo — intervalo aleatório entre mensagens, teto diário, janela de dias/horário, pausa longa a cada N mensagens — vive no Go, persistida em `app_settings` (`wa_*`) e `whatsapp_agent_state` (singleton, `id=1`), nunca em memória do processo Node. Agente começa **pausado**; reiniciar o bridge não reseta cooldown. Roda na máquina do usuário por design (sessão de WhatsApp Web saindo de datacenter é sinal de automação); o caminho manual antigo (abrir chat com mensagem pronta, confirmar "enviei") continua existindo como fallback quando o bridge não está rodando.
 
 Templates de WhatsApp suportam spintax (`{opção1|opção2}`) pro texto variar entre envios — só nesse canal, email não usa.
+
+Confirmação de envio pendente (saiu do bridge mas não chegou ao backend) fica em `whatsapp-bridge/pending-report.json` e é reenviada no próximo `npm start` — nunca apagar esse arquivo manualmente, é ele que impede reenvio duplicado no reboot do bridge.
 
 ### Frontend — feature-sliced (`frontend/src/`)
 ```
