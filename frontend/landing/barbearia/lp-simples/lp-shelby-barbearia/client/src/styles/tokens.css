@@ -1,0 +1,82 @@
+:root {
+  --bg: #100e0c;
+  --bg-alt: #16120f;
+  --bg-alt-end: #1c1713;
+  --bg-footer: #0c0a09;
+  --ink: #efe9de;
+  --ink-strong: #fcf8f0;
+  --ink-dim: #c6bca9;
+  --ink-mute: #9c907a;
+  --ink-faint: #7e735f;
+  --gold-light: #f6e3af;
+  --gold: #c79a3e;
+  --gold-dark: #8a6b24;
+  --gold-ink: #171310;
+  --green-whatsapp: #25d366;
+  --border-gold: rgba(231, 200, 124, 0.14);
+  --border-gold-soft: rgba(231, 200, 124, 0.12);
+  --border-gold-strong: rgba(231, 200, 124, 0.22);
+  --font-display: 'Bebas Neue', sans-serif;
+  --font-body: 'Plus Jakarta Sans', sans-serif;
+  --radius-pill: 100px;
+  --radius-lg: 26px;
+  --radius-md: 18px;
+  --container: 1180px;
+  --gutter: 28px;
+  --shadow-soft: 0 30px 70px -36px rgba(0, 0, 0, 0.65);
+  --shadow-lift: 0 40px 90px -30px rgba(0, 0, 0, 0.7);
+  --shadow-gold: 0 18px 38px -14px rgba(199, 154, 62, 0.55);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  text-wrap: pretty;
+  overflow-x: hidden;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+::selection {
+  background: rgba(199, 154, 62, 0.32);
+}
+
+input,
+textarea,
+button {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  background: none;
+  border: 0;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  color: var(--ink-strong);
+  text-transform: uppercase;
+}
