@@ -11,7 +11,7 @@ export function SelectionBar({
 }: {
   count: number
   onClear: () => void
-  onCreateCampaign: () => void
+  onCreateCampaign?: () => void
   /** Abre uma conversa por vez, com a pessoa presente. */
   onSendWhatsApp?: () => void
   /** Enfileira para o bridge enviar sozinho. */
@@ -23,10 +23,12 @@ export function SelectionBar({
       <span className="text-[13px] font-bold tabular text-accent-foreground">
         {formatNumber(count)} selecionado{count > 1 ? 's' : ''}
       </span>
-      <Button size="sm" onClick={onCreateCampaign}>
-        <Send />
-        Criar campanha
-      </Button>
+      {onCreateCampaign && (
+        <Button size="sm" onClick={onCreateCampaign}>
+          <Send />
+          Criar campanha
+        </Button>
+      )}
       {onQueueWhatsApp && (
         <Button size="sm" variant="secondary" onClick={onQueueWhatsApp}>
           <Zap />
