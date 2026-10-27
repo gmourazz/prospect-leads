@@ -1,0 +1,74 @@
+name: Deploy
+
+# Push no main publica backend (Fly) e frontend (Netlify), nessa ordem: a
+# migration nova roda no boot do backend, então o frontend só sobe depois que
+# ele estiver de pé. Se o portão de qualidade falhar, nada é publicado.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Dois deploys simultâneos do mesmo app brigam pela mesma máquina do Fly.
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - name: Backend
+        working-directory: backend
+        run: go build ./... && go vet ./... && go test ./...
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Frontend
+        working-directory: frontend
+        run: npm ci && npx tsc --noEmit
+
+  deploy-backend:
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: flyctl deploy
+        working-directory: backend
+        run: flyctl deploy --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      - name: Health check
+        run: curl --fail --retry 5 --retry-delay 5 --retry-all-errors https://prospect-backend.fly.dev/health
+
+  deploy-frontend:
+    needs: deploy-backend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Build
+        working-directory: frontend
+        # VITE_API_URL é embutido no build, não lido em runtime.
+        run: npm ci && npm run build
+        env:
+          VITE_API_URL: https://prospect-backend.fly.dev/api/v1
+      - name: Netlify deploy
+        working-directory: frontend
+        run: npx --yes netlify-cli@latest deploy --prod --dir=dist --site "$NETLIFY_SITE_ID"
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: 188431d0-6124-4fc7-b64e-bf58254b332f
