@@ -14,18 +14,21 @@ let running = true
 
 async function main() {
   const session = createSession({
-    onState: (connection, error = '') => {
-      api.connection(connection, error).catch((err) =>
+    onState: (connection, error = '', qr = '') => {
+      api.connection(connection, error, qr).catch((err) =>
         console.warn(`[api] nao consegui reportar estado: ${String(err)}`),
       )
     },
   })
 
-  process.on('SIGINT', () => {
-    console.log('\n[bridge] encerrando…')
-    running = false
-    api.connection('offline').finally(() => process.exit(0))
-  })
+  // SIGTERM is what launchd sends on stop/unload; same clean exit as Ctrl+C.
+  for (const signal of ['SIGINT', 'SIGTERM']) {
+    process.on(signal, () => {
+      console.log('\n[bridge] encerrando…')
+      running = false
+      api.connection('offline').finally(() => process.exit(0))
+    })
+  }
 
   // A report left over from a previous run goes out before anything new is
   // claimed: until the backend knows that message was delivered, it counts as

@@ -11,7 +11,9 @@ export function useWhatsAppQueue(range?: { from?: string; to?: string }) {
   return useQuery({
     queryKey: [...KEY, range?.from ?? null, range?.to ?? null] as const,
     queryFn: () => whatsappApi.status(range),
-    refetchInterval: 10_000,
+    // O QR do WhatsApp gira a cada ~20s; no ritmo normal ele chegaria velho.
+    refetchInterval: (query) =>
+      query.state.data?.state.connection === 'qr_required' ? 3_000 : 10_000,
   })
 }
 

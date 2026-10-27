@@ -4,6 +4,7 @@ import {
   fetchLatestBaileysVersion,
   useMultiFileAuthState,
 } from '@whiskeysockets/baileys'
+import { rmSync } from 'node:fs'
 import pino from 'pino'
 import qrcode from 'qrcode-terminal'
 import { config } from './config.js'
@@ -59,7 +60,7 @@ export function createSession({ onState }) {
         console.log('\n[whatsapp] escaneie o QR code abaixo no celular:')
         console.log('           WhatsApp > Aparelhos conectados > Conectar aparelho\n')
         qrcode.generate(qr, { small: true })
-        onState('qr_required')
+        onState('qr_required', '', qr)
         return
       }
 
@@ -82,13 +83,21 @@ export function createSession({ onState }) {
         const fatal = FATAL[status]
 
         if (fatal) {
-          console.error(
-            `[whatsapp] sessao encerrada pelo WhatsApp (${status}). O bridge nao vai reconectar sozinho.`,
-          )
-          if (fatal === 'logged_out') {
-            console.error('           apague a pasta auth/ e pareie de novo se isso foi voce desconectando.')
-          }
+          console.error(`[whatsapp] sessao encerrada pelo WhatsApp (${status}).`)
           onState(fatal, `statusCode ${status}`)
+
+          // Logged out from the phone (or a corrupt session): the saved
+          // credentials are dead, so clear them and ask for a fresh QR, which
+          // the site shows. The queue stays paused — the backend tripped its
+          // kill switch on 'logged_out' — until the owner resumes it.
+          if (status === DisconnectReason.loggedOut || status === DisconnectReason.badSession) {
+            console.warn('[whatsapp] sessao invalida — limpando auth/ e pedindo novo QR code no site.')
+            rmSync(config.authDir, { recursive: true, force: true })
+            setTimeout(connect, 2000)
+            return
+          }
+
+          console.error('           o bridge nao vai reconectar sozinho.')
           stopped = true
           return
         }

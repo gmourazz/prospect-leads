@@ -24,8 +24,25 @@ Na primeira execução aparece um QR code no terminal. No celular:
 **WhatsApp › Aparelhos conectados › Conectar aparelho**. O pareamento fica
 salvo em `auth/` e não é pedido de novo.
 
-Enquanto o terminal estiver aberto, o bridge envia. Fechou, parou — não existe
-envio automático sem esse processo rodando.
+Enquanto o processo estiver rodando, o bridge envia. Parou, parou — não existe
+envio automático sem ele.
+
+### Sem terminal: serviço do macOS
+
+```bash
+sh scripts/install-launchd.sh             # instala; sobe sozinho no login
+sh scripts/install-launchd.sh --uninstall # remove
+```
+
+Logs em `logs/bridge.log`. Reinicia sozinho se cair, mas **não** reinicia
+quando o WhatsApp restringe o número ou outra sessão assume — de propósito.
+
+### Parear (ou reparear) pelo site
+
+O QR code aparece em **Fila do WhatsApp › Bridge** sempre que o bridge precisa
+dele (primeira vez, ou depois de desconectar o aparelho pelo celular). Nesse
+caso o bridge apaga `auth/` sozinho e pede um QR novo; a fila continua
+pausada até você retomar.
 
 ## Por que roda aqui e não no servidor
 

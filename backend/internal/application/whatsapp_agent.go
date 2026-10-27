@@ -379,12 +379,12 @@ func (s *WhatsAppAgentService) ClearQueue(ctx context.Context) (int, error) {
 	return s.repo.ClearQueue(ctx)
 }
 
-func (s *WhatsAppAgentService) SetConnection(ctx context.Context, connection, lastError string) error {
+func (s *WhatsAppAgentService) SetConnection(ctx context.Context, connection, lastError, qr string) error {
 	switch connection {
 	case postgres.ConnOffline, postgres.ConnConnecting, postgres.ConnQRRequired,
 		postgres.ConnConnected, postgres.ConnLoggedOut, postgres.ConnBlocked:
 	default:
 		return domain.Validation("estado de conexão inválido")
 	}
-	return s.repo.SetConnection(ctx, connection, lastError)
+	return s.repo.SetConnection(ctx, connection, lastError, qr)
 }

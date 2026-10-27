@@ -45,7 +45,8 @@ async function call(path, body, { retryOnAuth = true } = {}) {
 
 export const api = {
   claim: () => call('/whatsapp/agent/claim'),
-  connection: (connection, error = '') => call('/whatsapp/agent/connection', { connection, error }),
+  connection: (connection, error = '', qr = '') =>
+    call('/whatsapp/agent/connection', { connection, error, qr }),
 }
 
 // ------------------------------------------------------------------ outbox

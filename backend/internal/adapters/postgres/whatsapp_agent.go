@@ -47,6 +47,9 @@ type AgentState struct {
 	LastSentAt      *time.Time `json:"last_sent_at"`
 	LastHeartbeatAt *time.Time `json:"last_heartbeat_at"`
 	LastError       *string    `json:"last_error"`
+	// QRCode is the raw pairing payload, set only while the bridge waits for a
+	// scan. The browser renders it; the bridge refreshes it as WhatsApp rotates it.
+	QRCode *string `json:"qr_code"`
 
 	// WaitFor is how long is left on the cooldown, measured by Postgres.
 	//
@@ -65,10 +68,11 @@ func (r *WhatsAppRepo) State(ctx context.Context) (AgentState, error) {
 	err := r.DB(ctx).QueryRow(ctx, `
 		SELECT connection, paused, pause_reason, next_allowed_at, burst_count,
 		       last_sent_at, last_heartbeat_at, last_error,
+		       CASE WHEN connection = 'qr_required' THEN qr_code END,
 		       EXTRACT(EPOCH FROM GREATEST(next_allowed_at - now(), interval '0'))
 		  FROM whatsapp_agent_state WHERE id = 1`).
 		Scan(&s.Connection, &s.Paused, &s.PauseReason, &s.NextAllowedAt,
-			&s.BurstCount, &s.LastSentAt, &s.LastHeartbeatAt, &s.LastError, &waitSeconds)
+			&s.BurstCount, &s.LastSentAt, &s.LastHeartbeatAt, &s.LastError, &s.QRCode, &waitSeconds)
 	if err != nil {
 		return s, TranslateError(err)
 	}
@@ -79,15 +83,19 @@ func (r *WhatsAppRepo) State(ctx context.Context) (AgentState, error) {
 // SetConnection records the bridge's heartbeat. It is also the kill switch:
 // a session that got logged out or blocked pauses the queue on the spot, so
 // no further message is handed out until a human looks at it.
-func (r *WhatsAppRepo) SetConnection(ctx context.Context, connection, lastError string) error {
-	var errPtr *string
+func (r *WhatsAppRepo) SetConnection(ctx context.Context, connection, lastError, qr string) error {
+	var errPtr, qrPtr *string
 	if lastError != "" {
 		errPtr = &lastError
+	}
+	if connection == ConnQRRequired && qr != "" {
+		qrPtr = &qr
 	}
 	_, err := r.DB(ctx).Exec(ctx, `
 		UPDATE whatsapp_agent_state
 		   SET connection        = $1,
 		       last_error        = $2,
+		       qr_code           = $3,
 		       last_heartbeat_at = now(),
 		       paused      = paused      OR $1 IN ('logged_out', 'blocked'),
 		       pause_reason = CASE
@@ -95,7 +103,7 @@ func (r *WhatsAppRepo) SetConnection(ctx context.Context, connection, lastError 
 		         WHEN $1 = 'blocked'    THEN 'o WhatsApp restringiu este número'
 		         ELSE pause_reason END,
 		       updated_at = now()
-		 WHERE id = 1`, connection, errPtr)
+		 WHERE id = 1`, connection, errPtr, qrPtr)
 	return TranslateError(err)
 }
 

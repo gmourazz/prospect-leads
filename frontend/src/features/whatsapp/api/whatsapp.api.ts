@@ -19,6 +19,8 @@ export interface WhatsAppAgentState {
   last_sent_at: string | null
   last_heartbeat_at: string | null
   last_error: string | null
+  /** Payload do QR de pareamento; só vem enquanto connection === 'qr_required'. */
+  qr_code: string | null
 }
 
 export interface WhatsAppCounts {

@@ -10,6 +10,7 @@ import {
   Trash2,
   WifiOff,
 } from 'lucide-react'
+import { QRCodeSVG } from 'qrcode.react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -92,7 +93,7 @@ export function WhatsAppQueuePage() {
               <span>
                 {state.connection === 'blocked'
                   ? 'O WhatsApp restringiu este número. Não reconecte antes de entender o motivo — insistir agora costuma piorar.'
-                  : 'A sessão do WhatsApp foi desconectada. Rode o bridge de novo e escaneie o QR code.'}
+                  : 'A sessão do WhatsApp foi desconectada. Um QR code novo aparece no card do Bridge — escaneie e retome a fila.'}
                 {state.last_error && (
                   <span className="mt-1 block opacity-80">Detalhe técnico: {state.last_error}</span>
                 )}
@@ -110,6 +111,11 @@ export function WhatsAppQueuePage() {
                 <p className="mt-3 text-[12.5px] leading-relaxed text-muted-foreground">
                   {CONNECTION_HELP[state.connection]}
                 </p>
+                {state.connection === 'qr_required' && state.qr_code && (
+                  <div className="mt-3 w-fit rounded-lg bg-white p-3">
+                    <QRCodeSVG value={state.qr_code} size={192} />
+                  </div>
+                )}
                 {state.last_heartbeat_at && (
                   <p className="mt-2 text-[12px] text-muted-foreground">
                     Último sinal: {formatDateTime(state.last_heartbeat_at)}
@@ -211,11 +217,13 @@ export function WhatsAppQueuePage() {
 }
 
 const CONNECTION_HELP: Record<WhatsAppConnection, string> = {
-  offline: 'O bridge não está rodando. Abra um terminal em whatsapp-bridge e rode npm start.',
+  offline:
+    'O bridge não está rodando. Se ele foi instalado como serviço, aguarde alguns segundos; senão rode whatsapp-bridge/scripts/install-launchd.sh.',
   connecting: 'Conectando à sessão do WhatsApp Web.',
-  qr_required: 'O bridge está esperando você escanear o QR code no terminal dele.',
-  connected: 'Sessão ativa. A fila anda enquanto este terminal estiver aberto.',
-  logged_out: 'A sessão foi encerrada. Rode o bridge de novo e pareie o aparelho.',
+  qr_required:
+    'No celular: WhatsApp › Aparelhos conectados › Conectar aparelho, e escaneie o QR code abaixo.',
+  connected: 'Sessão ativa. A fila anda enquanto o bridge estiver rodando no seu Mac.',
+  logged_out: 'A sessão foi encerrada. Aguarde o QR code novo aparecer aqui e pareie o aparelho.',
   blocked: 'O WhatsApp restringiu este número.',
 }
 

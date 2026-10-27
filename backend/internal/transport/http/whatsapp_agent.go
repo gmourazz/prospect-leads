@@ -138,12 +138,13 @@ func (a *API) reportWhatsAppConnection(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		Connection string `json:"connection"`
 		Error      string `json:"error"`
+		QR         string `json:"qr"`
 	}
 	if err := decode(r, &body); err != nil {
 		writeError(w, r, err)
 		return
 	}
-	if err := a.WhatsApp.SetConnection(r.Context(), body.Connection, body.Error); err != nil {
+	if err := a.WhatsApp.SetConnection(r.Context(), body.Connection, body.Error, body.QR); err != nil {
 		writeError(w, r, err)
 		return
 	}
